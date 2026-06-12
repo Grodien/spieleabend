@@ -8,11 +8,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { GameService } from '../../core/services/game.service';
-import { GameNightService } from '../../core/services/game-night.service';
-import { PlayerService } from '../../core/services/player.service';
+import { GameNightCacheService } from '../../core/services/game-night-cache.service';
 import { Game } from '../../core/models/game.model';
-import { GameNight, PlayedGame } from '../../core/models/game-night.model';
-import { Player } from '../../core/models/player.model';
+import { GameNight } from '../../core/models/game-night.model';
 import { Subscription } from 'rxjs';
 import { GameDialogComponent } from './game-dialog';
 
@@ -505,15 +503,15 @@ import { GameDialogComponent } from './game-dialog';
 })
 export class GameListComponent implements OnInit, OnDestroy {
   private gameService = inject(GameService);
-  private gameNightService = inject(GameNightService);
-  private playerService = inject(PlayerService);
+  private cache = inject(GameNightCacheService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
   games = signal<Game[]>([]);
-  gameNights = signal<GameNight[]>([]);
-  players = signal<Player[]>([]);
-  allPlayedGames = signal<Map<string, PlayedGame[]>>(new Map());
+  // Use cache signals directly
+  readonly gameNights = this.cache.gameNights;
+  readonly players = this.cache.players;
+
   flippedGameId = signal<string | null>(null);
   private subscriptions: Subscription[] = [];
 
@@ -547,29 +545,13 @@ export class GameListComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
+    this.cache.initialize();
+
     const sub1 = this.gameService.getAll().subscribe((games) => {
       this.games.set(games);
     });
 
-    const sub2 = this.gameNightService.getAll().subscribe((gn) => {
-      this.gameNights.set(gn);
-      gn.forEach((night) => {
-        const sub = this.gameNightService.getPlayedGames(night.id).subscribe((pg) => {
-          this.allPlayedGames.update((map) => {
-            const newMap = new Map(map);
-            newMap.set(night.id, pg);
-            return newMap;
-          });
-        });
-        this.subscriptions.push(sub);
-      });
-    });
-
-    const sub3 = this.playerService.getAll().subscribe((players) => {
-      this.players.set(players);
-    });
-
-    this.subscriptions.push(sub1, sub2, sub3);
+    this.subscriptions.push(sub1);
   }
 
   ngOnDestroy() {
@@ -584,8 +566,7 @@ export class GameListComponent implements OnInit, OnDestroy {
     });
 
     this.gameNights().forEach((night) => {
-      const played = this.allPlayedGames().get(night.id) || [];
-      played.forEach((pg) => {
+      (night.playedGames ?? []).forEach((pg) => {
         const stat = statsMap.get(pg.gameId);
         if (stat) {
           stat.count++;
@@ -605,7 +586,6 @@ export class GameListComponent implements OnInit, OnDestroy {
   gamePlayerStats = computed(() => {
     const games = this.games();
     const nights = this.gameNights();
-    const played = this.allPlayedGames();
     const players = this.players();
 
     const statsMap = new Map<string, Array<{
@@ -619,8 +599,7 @@ export class GameListComponent implements OnInit, OnDestroy {
       const playerMap = new Map<string, { totalScore: number; playCount: number }>();
       
       nights.forEach((night) => {
-        const playedGames = played.get(night.id) || [];
-        playedGames.forEach((pg) => {
+        (night.playedGames ?? []).forEach((pg) => {
           if (pg.gameId === game.id) {
             Object.entries(pg.scores).forEach(([playerId, score]) => {
               const current = playerMap.get(playerId) || { totalScore: 0, playCount: 0 };

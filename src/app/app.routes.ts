@@ -38,4 +38,11 @@ export const routes: Routes = [
         (m) => m.GameNightDetailComponent,
       ),
   },
+  {
+    path: 'admin',
+    loadComponent: () =>
+      import('./features/admin/admin-migration').then(
+        (m) => m.AdminMigrationComponent,
+      ),
+  },
 ];

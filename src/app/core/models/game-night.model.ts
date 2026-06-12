@@ -3,6 +3,7 @@ export interface GameNight {
   date: string;
   costPerGame: 3 | 5;
   playerIds: string[];
+  playedGames: PlayedGame[];
   createdAt: number;
 }
 

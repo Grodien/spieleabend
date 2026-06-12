@@ -1,14 +1,7 @@
-import {
-  Injectable,
-  inject,
-  signal,
-  computed,
-  DestroyRef,
-} from '@angular/core';
-import { PlayerService } from '../../../core/services/player.service';
-import { GameNightService } from '../../../core/services/game-night.service';
-import { Player } from '../../../core/models/player.model';
+import { Injectable, inject, signal, computed, DestroyRef } from '@angular/core';
+import { GameNightCacheService } from '../../../core/services/game-night-cache.service';
 import { GameNight, PlayedGame } from '../../../core/models/game-night.model';
+import { Player } from '../../../core/models/player.model';
 
 export interface PlayerStats {
   playerId: string;
@@ -22,19 +15,17 @@ export interface PlayerStats {
 
 /**
  * Provides all reactive data and computed statistics for the Dashboard.
- * Must be provided at the Dashboard component level (not root) so its
- * subscriptions are cleaned up when the dashboard is destroyed.
+ * Provided at Dashboard component level so it's scoped to the dashboard lifetime.
+ * Data comes from the shared GameNightCacheService to avoid duplicate Firestore reads.
  */
 @Injectable()
 export class DashboardStatsService {
-  private playerService = inject(PlayerService);
-  private gameNightService = inject(GameNightService);
+  private cache = inject(GameNightCacheService);
   private destroyRef = inject(DestroyRef);
 
-  // ── Raw data signals ─────────────────────────────────────────────────────
-  players = signal<Player[]>([]);
-  gameNights = signal<GameNight[]>([]);
-  allPlayedGames = signal<Map<string, PlayedGame[]>>(new Map());
+  // ── Expose cache signals directly ─────────────────────────────────────────
+  readonly players = this.cache.players;
+  readonly gameNights = this.cache.gameNights;
 
   // ── Filter state ─────────────────────────────────────────────────────────
   selectedYear = signal<string>('all');
@@ -68,19 +59,16 @@ export class DashboardStatsService {
   // ── KPI stats ────────────────────────────────────────────────────────────
   totalNights = computed(() => this.pastFilteredGameNights().length);
 
-  totalGamesPlayed = computed(() => {
-    let count = 0;
-    this.pastFilteredGameNights().forEach((night) => {
-      count += (this.allPlayedGames().get(night.id) || []).length;
-    });
-    return count;
-  });
+  totalGamesPlayed = computed(() =>
+    this.pastFilteredGameNights().reduce(
+      (sum, n) => sum + (n.playedGames?.length ?? 0), 0
+    )
+  );
 
   totalSpent = computed(() => {
     let total = 0;
     this.pastFilteredGameNights().forEach((night) => {
-      const games = this.allPlayedGames().get(night.id) || [];
-      games.forEach((pg) => {
+      (night.playedGames ?? []).forEach((pg) => {
         Object.values(pg.costs).forEach((cost) => {
           if (cost > 0) total += cost;
         });
@@ -111,8 +99,7 @@ export class DashboardStatsService {
         if (s) s.nightsPlayed++;
       });
 
-      const pg = this.allPlayedGames().get(night.id) || [];
-      pg.forEach((game) => {
+      (night.playedGames ?? []).forEach((game) => {
         const scores = Object.entries(game.scores);
         const sorted = [...scores].sort((a, b) =>
           game.scoringSystem === 'highest' ? b[1] - a[1] : a[1] - b[1]
@@ -162,8 +149,7 @@ export class DashboardStatsService {
   gameCounts = computed(() => {
     const counts = new Map<string, number>();
     this.pastFilteredGameNights().forEach((night) => {
-      const games = this.allPlayedGames().get(night.id) || [];
-      games.forEach((pg) => {
+      (night.playedGames ?? []).forEach((pg) => {
         counts.set(pg.gameName, (counts.get(pg.gameName) || 0) + 1);
       });
     });
@@ -219,7 +205,7 @@ export class DashboardStatsService {
   lastGameNightPlayedGames = computed(() => {
     const last = this.lastGameNight();
     if (!last) return [];
-    return this.allPlayedGames().get(last.id) || [];
+    return last.playedGames ?? [];
   });
 
   lastGameNightCosts = computed(() => {
@@ -288,32 +274,6 @@ export class DashboardStatsService {
 
   // ── Data loading ──────────────────────────────────────────────────────────
   initialize(): void {
-    const subs: (() => void)[] = [];
-
-    const sub1 = this.playerService
-      .getAll()
-      .subscribe((p) => this.players.set(p));
-
-    const sub2 = this.gameNightService.getAll().subscribe((gn) => {
-      this.gameNights.set(gn);
-      gn.forEach((night) => {
-        const sub = this.gameNightService
-          .getPlayedGames(night.id)
-          .subscribe((pg) => {
-            this.allPlayedGames.update((map) => {
-              const newMap = new Map(map);
-              newMap.set(night.id, pg);
-              return newMap;
-            });
-          });
-        subs.push(() => sub.unsubscribe());
-      });
-    });
-
-    this.destroyRef.onDestroy(() => {
-      sub1.unsubscribe();
-      sub2.unsubscribe();
-      subs.forEach((unsub) => unsub());
-    });
+    this.cache.initialize();
   }
 }

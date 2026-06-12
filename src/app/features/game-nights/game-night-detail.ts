@@ -406,10 +406,12 @@ export class GameNightDetailComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
 
   gameNight = signal<GameNight | null>(null);
-  playedGames = signal<PlayedGame[]>([]);
   allPlayers = signal<Player[]>([]);
   private playerMap = signal<Map<string, string>>(new Map());
   private games = signal<Game[]>([]);
+
+  // playedGames come directly from the embedded array in the gameNight document
+  playedGames = computed(() => this.gameNight()?.playedGames ?? []);
 
   totalCosts = computed(() => {
     const gn = this.gameNight();
@@ -443,12 +445,9 @@ export class GameNightDetailComponent implements OnInit {
       this.games.set(games);
     });
 
+    // playedGames are embedded in the gameNight document – single listener
     this.gameNightService.getById(id).subscribe((gn) => {
       this.gameNight.set(gn ?? null);
-    });
-
-    this.gameNightService.getPlayedGames(id).subscribe((pg) => {
-      this.playedGames.set(pg);
     });
   }
 
@@ -459,8 +458,8 @@ export class GameNightDetailComponent implements OnInit {
   getSortedScores(pg: PlayedGame): Array<{ playerId: string; score: number; cost: number; rank: number }> {
     const entries = Object.entries(pg.scores).map(([playerId, score]) => ({
       playerId,
-      score,
-      cost: pg.costs[playerId] || 0,
+      score: score as number,
+      cost: (pg.costs[playerId] || 0) as number,
       rank: 0,
     }));
 
