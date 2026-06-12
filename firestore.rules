@@ -20,11 +20,6 @@ service cloud.firestore {
     // GameNights collection
     match /gameNights/{nightId} {
       allow read, write: if true;
-
-      // PlayedGames subcollection
-      match /playedGames/{playedGameId} {
-        allow read, write: if true;
-      }
     }
   }
 }
