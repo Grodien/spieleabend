@@ -1049,7 +1049,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   downloadIcs(night: GameNight) {
-    const startYMD = night.date.replace(/-/g, '');
+    const localStart = new Date(`${night.date}T13:00:00`);
+    const localEnd = new Date(`${night.date}T23:00:00`);
+    const startUtcStr = localStart.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const endUtcStr = localEnd.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     
     // Explicitly generate UTC stamp using standard UTC methods
     const now = new Date();
@@ -1069,8 +1072,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'BEGIN:VEVENT',
       `UID:spieleabend-${night.id}`,
       `DTSTAMP:${stamp}`,
-      `DTSTART:${startYMD}T130000`,
-      `DTEND:${startYMD}T230000`,
+      `DTSTART:${startUtcStr}`,
+      `DTEND:${endUtcStr}`,
       'SUMMARY:Spieleabend',
       'DESCRIPTION:Gemeinsamer Spieleabend',
       'STATUS:CONFIRMED',
@@ -1096,17 +1099,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getGoogleCalendarUrl(night: GameNight): string {
-    const startYMD = night.date.replace(/-/g, '');
+    const localStart = new Date(`${night.date}T13:00:00`);
+    const localEnd = new Date(`${night.date}T23:00:00`);
+    const startUtcStr = localStart.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const endUtcStr = localEnd.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    
     const title = encodeURIComponent('Spieleabend 🎲');
     const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
     
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startYMD}T130000/${startYMD}T230000&details=${details}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startUtcStr}/${endUtcStr}&details=${details}`;
   }
 
   getOutlookCalendarUrl(night: GameNight): string {
+    const localStart = new Date(`${night.date}T13:00:00`);
+    const localEnd = new Date(`${night.date}T23:00:00`);
+    const startUtcStr = localStart.toISOString().split('.')[0] + 'Z';
+    const endUtcStr = localEnd.toISOString().split('.')[0] + 'Z';
+
     const title = encodeURIComponent('Spieleabend 🎲');
     const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
     
-    return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${night.date}T13:00:00&enddt=${night.date}T23:00:00&allday=false&body=${details}`;
+    return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${startUtcStr}&enddt=${endUtcStr}&allday=false&body=${details}`;
   }
 }
