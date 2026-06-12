@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Spieleabend Tracker - Prototype Security Rules
+// NOTE: These rules allow open read/write access for a private, non-authenticated app.
+// For production use with multiple users, add Firebase Authentication and restrict access.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Players collection
+    match /players/{playerId} {
+      allow read, write: if true;
+    }
+
+    // Games collection
+    match /games/{gameId} {
+      allow read, write: if true;
+    }
+
+    // GameNights collection
+    match /gameNights/{nightId} {
+      allow read, write: if true;
+
+      // PlayedGames subcollection
+      match /playedGames/{playedGameId} {
+        allow read, write: if true;
+      }
+    }
+  }
+}
