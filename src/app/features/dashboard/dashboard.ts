@@ -708,7 +708,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   });
 
   sortedByAvgCost = computed(() =>
-    [...this.playerStats()].sort((a, b) => b.avgCostPerNight - a.avgCostPerNight)
+    [...this.playerStats()]
+      .filter((s) => s.nightsPlayed > 0)
+      .sort((a, b) => a.avgCostPerNight - b.avgCostPerNight)
   );
 
   sortedByWins = computed(() =>
