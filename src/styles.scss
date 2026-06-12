@@ -218,25 +218,80 @@ html, body {
 .chip-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 4px 10px;
   border-radius: 100px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(4px);
+
+  .chip-icon {
+    font-size: 14px !important;
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+  }
 
   &.chip-highest {
-    background: rgba(52, 211, 153, 0.15);
-    color: var(--color-success);
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(52, 211, 153, 0.03));
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.25);
+    
+    &:hover {
+      border-color: rgba(52, 211, 153, 0.5);
+      box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
+    }
   }
 
   &.chip-lowest {
-    background: rgba(96, 165, 250, 0.15);
-    color: var(--color-info);
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(96, 165, 250, 0.03));
+    color: #60a5fa;
+    border: 1px solid rgba(96, 165, 250, 0.25);
+    
+    &:hover {
+      border-color: rgba(96, 165, 250, 0.5);
+      box-shadow: 0 0 10px rgba(96, 165, 250, 0.2);
+    }
   }
 
   &.chip-team {
-    background: rgba(245, 158, 11, 0.15);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.03));
     color: var(--color-accent-light);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    
+    &:hover {
+      border-color: rgba(245, 158, 11, 0.5);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+    }
+  }
+
+  &.chip-play-count {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.03)) !important;
+    color: #c084fc !important;
+    border: 1px solid rgba(139, 92, 246, 0.25) !important;
+    
+    &:hover {
+      border-color: rgba(139, 92, 246, 0.5) !important;
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.2) !important;
+    }
+  }
+
+  &.chip-first-play {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(236, 72, 153, 0.03)) !important;
+    color: #f472b6 !important;
+    border: 1px solid rgba(236, 72, 153, 0.25) !important;
+    
+    &:hover {
+      border-color: rgba(236, 72, 153, 0.5) !important;
+      box-shadow: 0 0 10px rgba(236, 72, 153, 0.2) !important;
+    }
   }
 }
 

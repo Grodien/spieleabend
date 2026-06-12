@@ -50,16 +50,13 @@ import { GameDialogComponent } from './game-dialog';
                         Teamspiel
                       </span>
                     }
-                  </div>
-                  
-                  <div class="game-stats-row">
-                    <span class="game-stat-item">
-                      <mat-icon class="stat-icon-mini">analytics</mat-icon>
-                      Gespielt: {{ getPlayCount(game.id) }}x
+                    <span class="chip-badge chip-play-count">
+                      <mat-icon class="chip-icon">analytics</mat-icon>
+                      {{ getPlayCount(game.id) }}x gespielt
                     </span>
                     @if (getFirstPlayedDate(game.id)) {
-                      <span class="game-stat-item">
-                        <mat-icon class="stat-icon-mini">calendar_month</mat-icon>
+                      <span class="chip-badge chip-first-play">
+                        <mat-icon class="chip-icon">calendar_month</mat-icon>
                         Zuerst gespielt: {{ getFirstPlayedDate(game.id) | date:'dd.MM.yyyy' }}
                       </span>
                     }
@@ -110,35 +107,6 @@ import { GameDialogComponent } from './game-dialog';
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-    }
-
-    .chip-icon {
-      font-size: 14px !important;
-      width: 14px !important;
-      height: 14px !important;
-    }
-
-    .game-stats-row {
-      display: flex;
-      gap: 16px;
-      margin-top: 12px;
-      flex-wrap: wrap;
-    }
-
-    .game-stat-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: var(--color-text-secondary);
-      font-weight: 500;
-      
-      .stat-icon-mini {
-        font-size: 14px !important;
-        width: 14px !important;
-        height: 14px !important;
-        color: var(--color-text-muted);
-      }
     }
 
     .delete-btn {

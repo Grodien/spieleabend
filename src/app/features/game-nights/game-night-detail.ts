@@ -87,10 +87,14 @@ import { AddGameDialogComponent } from './add-game-dialog';
                     <span class="game-result-name">{{ pg.gameName }}</span>
                     <div class="game-result-badges">
                       <span class="chip-badge" [class.chip-highest]="pg.scoringSystem === 'highest'" [class.chip-lowest]="pg.scoringSystem === 'lowest'">
-                        {{ pg.scoringSystem === 'highest' ? 'Highest' : 'Lowest' }} Wins
+                        <mat-icon class="chip-icon">{{ pg.scoringSystem === 'highest' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                        {{ pg.scoringSystem === 'highest' ? 'Highest Wins' : 'Lowest Wins' }}
                       </span>
                       @if (pg.isTeamGame) {
-                        <span class="chip-badge chip-team">Teamspiel</span>
+                        <span class="chip-badge chip-team">
+                          <mat-icon class="chip-icon">groups</mat-icon>
+                          Teamspiel
+                        </span>
                       }
                     </div>
                   </div>
