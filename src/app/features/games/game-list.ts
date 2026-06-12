@@ -1,11 +1,14 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { GameService } from '../../core/services/game.service';
+import { GameNightService } from '../../core/services/game-night.service';
 import { Game } from '../../core/models/game.model';
+import { GameNight, PlayedGame } from '../../core/models/game-night.model';
+import { Subscription } from 'rxjs';
 import { GameDialogComponent } from './game-dialog';
 
 @Component({
@@ -45,6 +48,19 @@ import { GameDialogComponent } from './game-dialog';
                       <span class="chip-badge chip-team">
                         <mat-icon class="chip-icon">groups</mat-icon>
                         Teamspiel
+                      </span>
+                    }
+                  </div>
+                  
+                  <div class="game-stats-row">
+                    <span class="game-stat-item">
+                      <mat-icon class="stat-icon-mini">analytics</mat-icon>
+                      Gespielt: {{ getPlayCount(game.id) }}x
+                    </span>
+                    @if (getFirstPlayedDate(game.id)) {
+                      <span class="game-stat-item">
+                        <mat-icon class="stat-icon-mini">calendar_month</mat-icon>
+                        Zuerst gespielt: {{ getFirstPlayedDate(game.id) | date:'dd.MM.yyyy' }}
                       </span>
                     }
                   </div>
@@ -102,6 +118,29 @@ import { GameDialogComponent } from './game-dialog';
       height: 14px !important;
     }
 
+    .game-stats-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .game-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+      
+      .stat-icon-mini {
+        font-size: 14px !important;
+        width: 14px !important;
+        height: 14px !important;
+        color: var(--color-text-muted);
+      }
+    }
+
     .delete-btn {
       opacity: 0.5;
       transition: opacity var(--transition-fast), color var(--transition-fast);
@@ -113,17 +152,75 @@ import { GameDialogComponent } from './game-dialog';
     }
   `,
 })
-export class GameListComponent implements OnInit {
+export class GameListComponent implements OnInit, OnDestroy {
   private gameService = inject(GameService);
+  private gameNightService = inject(GameNightService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
   games = signal<Game[]>([]);
+  gameNights = signal<GameNight[]>([]);
+  allPlayedGames = signal<Map<string, PlayedGame[]>>(new Map());
+  private subscriptions: Subscription[] = [];
 
   ngOnInit() {
-    this.gameService.getAll().subscribe((games) => {
+    const sub1 = this.gameService.getAll().subscribe((games) => {
       this.games.set(games);
     });
+
+    const sub2 = this.gameNightService.getAll().subscribe((gn) => {
+      this.gameNights.set(gn);
+      gn.forEach((night) => {
+        const sub = this.gameNightService.getPlayedGames(night.id).subscribe((pg) => {
+          this.allPlayedGames.update((map) => {
+            const newMap = new Map(map);
+            newMap.set(night.id, pg);
+            return newMap;
+          });
+        });
+        this.subscriptions.push(sub);
+      });
+    });
+
+    this.subscriptions.push(sub1, sub2);
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach((s) => s.unsubscribe());
+  }
+
+  gameStats = computed(() => {
+    const statsMap = new Map<string, { count: number; firstPlayed: string | null }>();
+
+    this.games().forEach((game) => {
+      statsMap.set(game.id, { count: 0, firstPlayed: null });
+    });
+
+    this.gameNights().forEach((night) => {
+      const played = this.allPlayedGames().get(night.id) || [];
+      played.forEach((pg) => {
+        const stat = statsMap.get(pg.gameId);
+        if (stat) {
+          stat.count++;
+          const nightDate = night.date;
+          if (nightDate) {
+            if (!stat.firstPlayed || new Date(nightDate).getTime() < new Date(stat.firstPlayed).getTime()) {
+              stat.firstPlayed = nightDate;
+            }
+          }
+        }
+      });
+    });
+
+    return statsMap;
+  });
+
+  getPlayCount(gameId: string): number {
+    return this.gameStats().get(gameId)?.count || 0;
+  }
+
+  getFirstPlayedDate(gameId: string): string | null {
+    return this.gameStats().get(gameId)?.firstPlayed || null;
   }
 
   openDialog() {
