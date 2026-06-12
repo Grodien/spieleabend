@@ -1052,34 +1052,39 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   downloadIcs(night: GameNight) {
-    const start = new Date(night.date);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 1);
-    
     const startYMD = night.date.replace(/-/g, '');
-    const endYMD = end.toISOString().split('T')[0].replace(/-/g, '');
-    const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    
+    // Explicitly generate UTC stamp using standard UTC methods
+    const now = new Date();
+    const stamp = now.getUTCFullYear().toString() +
+      String(now.getUTCMonth() + 1).padStart(2, '0') +
+      String(now.getUTCDate()).padStart(2, '0') + 'T' +
+      String(now.getUTCHours()).padStart(2, '0') +
+      String(now.getUTCMinutes()).padStart(2, '0') +
+      String(now.getUTCSeconds()).padStart(2, '0') + 'Z';
 
     const icsLines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Spieleabend Tracker//DE',
+      'PRODID:-//Spieleabend Tracker//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
       'BEGIN:VEVENT',
-      `UID:spieleabend-${night.id}@spieleabend.ch`,
+      `UID:spieleabend-${night.id}`,
       `DTSTAMP:${stamp}`,
-      `DTSTART;VALUE=DATE:${startYMD}`,
-      `DTEND;VALUE=DATE:${endYMD}`,
-      'SUMMARY:Spieleabend 🎲',
-      'DESCRIPTION:Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!',
+      `DTSTART:${startYMD}T190000`,
+      `DTEND:${startYMD}T233000`,
+      'SUMMARY:Spieleabend',
+      'DESCRIPTION:Gemeinsamer Spieleabend',
       'STATUS:CONFIRMED',
       'END:VEVENT',
       'END:VCALENDAR'
     ];
 
-    const icsContent = icsLines.join('\r\n');
+    // Join with CRLF and ensure a trailing CRLF at the end of the file
+    const icsContent = icsLines.join('\r\n') + '\r\n';
 
-    // Always use Blob download since iOS Safari blocks data:text/calendar URI navigations in modern iOS versions.
-    // Use plain 'text/calendar' without extra parameter strings which can confuse iOS WebKit.
+    // Create Blob with clean MIME type
     const blob = new Blob([icsContent], { type: 'text/calendar' });
     const url = URL.createObjectURL(blob);
     
