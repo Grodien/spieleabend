@@ -1048,77 +1048,112 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return `in ${diffDays} Tagen`;
   }
 
-  downloadIcs(night: GameNight) {
-    const localStart = new Date(`${night.date}T13:00:00`);
-    const localEnd = new Date(`${night.date}T23:00:00`);
-    const startUtcStr = localStart.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const endUtcStr = localEnd.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    
-    // Explicitly generate UTC stamp using standard UTC methods
-    const now = new Date();
-    const stamp = now.getUTCFullYear().toString() +
-      String(now.getUTCMonth() + 1).padStart(2, '0') +
-      String(now.getUTCDate()).padStart(2, '0') + 'T' +
-      String(now.getUTCHours()).padStart(2, '0') +
-      String(now.getUTCMinutes()).padStart(2, '0') +
-      String(now.getUTCSeconds()).padStart(2, '0') + 'Z';
+  downloadIcs(night: GameNight | null | undefined) {
+    if (!night || !night.date) return;
+    try {
+      const parts = night.date.split('-');
+      if (parts.length !== 3) return;
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const localStart = new Date(year, month, day, 13, 0, 0);
+      const localEnd = new Date(year, month, day, 23, 0, 0);
+      const startUtcStr = localStart.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const endUtcStr = localEnd.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      
+      // Explicitly generate UTC stamp using standard UTC methods
+      const now = new Date();
+      const stamp = now.getUTCFullYear().toString() +
+        String(now.getUTCMonth() + 1).padStart(2, '0') +
+        String(now.getUTCDate()).padStart(2, '0') + 'T' +
+        String(now.getUTCHours()).padStart(2, '0') +
+        String(now.getUTCMinutes()).padStart(2, '0') +
+        String(now.getUTCSeconds()).padStart(2, '0') + 'Z';
 
-    const icsLines = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Spieleabend Tracker//EN',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'BEGIN:VEVENT',
-      `UID:spieleabend-${night.id}`,
-      `DTSTAMP:${stamp}`,
-      `DTSTART:${startUtcStr}`,
-      `DTEND:${endUtcStr}`,
-      'SUMMARY:Spieleabend',
-      'DESCRIPTION:Gemeinsamer Spieleabend',
-      'STATUS:CONFIRMED',
-      'END:VEVENT',
-      'END:VCALENDAR'
-    ];
+      const icsLines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Spieleabend Tracker//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        `UID:spieleabend-${night.id}`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART:${startUtcStr}`,
+        `DTEND:${endUtcStr}`,
+        'SUMMARY:Spieleabend',
+        'DESCRIPTION:Gemeinsamer Spieleabend',
+        'STATUS:CONFIRMED',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ];
 
-    // Join with CRLF and ensure a trailing CRLF at the end of the file
-    const icsContent = icsLines.join('\r\n') + '\r\n';
+      // Join with CRLF and ensure a trailing CRLF at the end of the file
+      const icsContent = icsLines.join('\r\n') + '\r\n';
 
-    // Create Blob with clean MIME type
-    const blob = new Blob([icsContent], { type: 'text/calendar' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `spieleabend-${night.date}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+      // Create Blob with clean MIME type
+      const blob = new Blob([icsContent], { type: 'text/calendar' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `spieleabend-${night.date}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) {
+      console.error('Error downloading ICS file:', e);
+    }
   }
 
-  getGoogleCalendarUrl(night: GameNight): string {
-    const localStart = new Date(`${night.date}T13:00:00`);
-    const localEnd = new Date(`${night.date}T23:00:00`);
-    const startUtcStr = localStart.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const endUtcStr = localEnd.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    
-    const title = encodeURIComponent('Spieleabend 🎲');
-    const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
-    
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startUtcStr}/${endUtcStr}&details=${details}`;
+  getGoogleCalendarUrl(night: GameNight | null | undefined): string {
+    if (!night || !night.date) return '';
+    try {
+      const parts = night.date.split('-');
+      if (parts.length !== 3) return '';
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const localStart = new Date(year, month, day, 13, 0, 0);
+      const localEnd = new Date(year, month, day, 23, 0, 0);
+      const startUtcStr = localStart.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const endUtcStr = localEnd.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      
+      const title = encodeURIComponent('Spieleabend 🎲');
+      const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
+      
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startUtcStr}/${endUtcStr}&details=${details}`;
+    } catch (e) {
+      console.error('Error generating Google Calendar URL:', e);
+      return '';
+    }
   }
 
-  getOutlookCalendarUrl(night: GameNight): string {
-    const localStart = new Date(`${night.date}T13:00:00`);
-    const localEnd = new Date(`${night.date}T23:00:00`);
-    const startUtcStr = localStart.toISOString().split('.')[0] + 'Z';
-    const endUtcStr = localEnd.toISOString().split('.')[0] + 'Z';
+  getOutlookCalendarUrl(night: GameNight | null | undefined): string {
+    if (!night || !night.date) return '';
+    try {
+      const parts = night.date.split('-');
+      if (parts.length !== 3) return '';
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const localStart = new Date(year, month, day, 13, 0, 0);
+      const localEnd = new Date(year, month, day, 23, 0, 0);
+      const startUtcStr = localStart.toISOString().split('.')[0] + 'Z';
+      const endUtcStr = localEnd.toISOString().split('.')[0] + 'Z';
 
-    const title = encodeURIComponent('Spieleabend 🎲');
-    const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
-    
-    return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${startUtcStr}&enddt=${endUtcStr}&allday=false&body=${details}`;
+      const title = encodeURIComponent('Spieleabend 🎲');
+      const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
+      
+      return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${startUtcStr}&enddt=${endUtcStr}&allday=false&body=${details}`;
+    } catch (e) {
+      console.error('Error generating Outlook Calendar URL:', e);
+      return '';
+    }
   }
 }
