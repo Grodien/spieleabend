@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { PlayerService } from '../../core/services/player.service';
 import { GameService } from '../../core/services/game.service';
 import { GameNightService } from '../../core/services/game-night.service';
@@ -32,7 +33,8 @@ interface PlayerStats {
     DatePipe, 
     MatFormFieldModule, 
     MatSelectModule, 
-    MatButtonModule
+    MatButtonModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="page-container">
@@ -715,6 +717,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private playerService = inject(PlayerService);
   private gameService = inject(GameService);
   private gameNightService = inject(GameNightService);
+  private snackBar = inject(MatSnackBar);
 
   players = signal<Player[]>([]);
   gameNights = signal<GameNight[]>([]);
@@ -1015,24 +1018,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const icsContent = icsLines.join('\r\n');
 
-    // Detect if iOS (iPhone/iPad/iPod)
+    // Always use Blob download since iOS Safari blocks data:text/calendar URI navigations in modern iOS versions.
+    // Use plain 'text/calendar' without extra parameter strings which can confuse iOS WebKit.
+    const blob = new Blob([icsContent], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `spieleabend-${night.date}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    // Detect if iOS (iPhone/iPad/iPod) to show guide toast
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     if (isIOS) {
-      // iOS Safari handles data URI with text/calendar natively by opening the Calendar app directly
-      const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-      window.location.href = dataUri;
-    } else {
-      // For desktop / Android, Blob download works perfectly
-      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.setAttribute('download', `spieleabend-${night.date}.ics`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
+      this.snackBar.open(
+        'Kalendereintrag geladen! Tippe in Safari auf den Download-Pfeil (oben/unten) und wähle die .ics-Datei aus, um sie in den Kalender einzutragen.',
+        'Schließen',
+        { duration: 8000 }
+      );
     }
   }
 }

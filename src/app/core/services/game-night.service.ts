@@ -9,6 +9,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '../firebase.config';
 import { GameNight, PlayedGame } from '../models/game-night.model';
@@ -71,6 +72,10 @@ export class GameNightService {
 
   async delete(id: string): Promise<void> {
     await deleteDoc(doc(db, this.collectionName, id));
+  }
+
+  async update(id: string, data: Partial<Omit<GameNight, 'id' | 'createdAt'>>): Promise<void> {
+    await updateDoc(doc(db, this.collectionName, id), data);
   }
 
   // --- PlayedGames subcollection ---

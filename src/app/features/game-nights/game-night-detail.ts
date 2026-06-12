@@ -16,6 +16,7 @@ import { GameNight, PlayedGame } from '../../core/models/game-night.model';
 import { Player } from '../../core/models/player.model';
 import { Game } from '../../core/models/game.model';
 import { AddGameDialogComponent } from './add-game-dialog';
+import { EditPlayersDialogComponent } from './edit-players-dialog';
 
 @Component({
   selector: 'app-game-night-detail',
@@ -47,10 +48,18 @@ import { AddGameDialogComponent } from './add-game-dialog';
               </div>
             </div>
           </div>
-          <button mat-fab extended (click)="openAddGameDialog()">
-            <mat-icon>add</mat-icon>
-            Spiel hinzufügen
-          </button>
+          <div class="header-actions">
+            @if (playedGames().length === 0) {
+              <button mat-flat-button class="edit-players-btn" (click)="openEditPlayersDialog()">
+                <mat-icon>people</mat-icon>
+                Teilnehmer bearbeiten
+              </button>
+            }
+            <button mat-fab extended (click)="openAddGameDialog()">
+              <mat-icon>add</mat-icon>
+              Spiel hinzufügen
+            </button>
+          </div>
         </div>
 
         <!-- Player Cost Summary -->
@@ -138,6 +147,26 @@ import { AddGameDialogComponent } from './add-game-dialog';
     </div>
   `,
   styles: `
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .edit-players-btn {
+      background: var(--color-bg-surface) !important;
+      border: 1px solid var(--color-border) !important;
+      color: var(--color-text-primary) !important;
+      height: 48px;
+      border-radius: var(--radius-md) !important;
+      padding: 0 16px !important;
+      font-weight: 600;
+
+      &:hover {
+        background: var(--color-bg-card-hover) !important;
+      }
+    }
+
     .header-left {
       display: flex;
       align-items: center;
@@ -333,6 +362,20 @@ import { AddGameDialogComponent } from './add-game-dialog';
       font-size: 16px;
     }
 
+    @media (max-width: 768px) {
+      .header-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 12px;
+      }
+      
+      .edit-players-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
     @media (max-width: 600px) {
       .score-header-row, .score-row {
         padding: 10px 8px;
@@ -364,6 +407,7 @@ export class GameNightDetailComponent implements OnInit {
 
   gameNight = signal<GameNight | null>(null);
   playedGames = signal<PlayedGame[]>([]);
+  allPlayers = signal<Player[]>([]);
   private playerMap = signal<Map<string, string>>(new Map());
   private games = signal<Game[]>([]);
 
@@ -389,6 +433,7 @@ export class GameNightDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id')!;
 
     this.playerService.getAll().subscribe((players) => {
+      this.allPlayers.set(players);
       const map = new Map<string, string>();
       players.forEach((p) => map.set(p.id, p.name));
       this.playerMap.set(map);
@@ -484,6 +529,28 @@ export class GameNightDetailComponent implements OnInit {
 
     this.gameNightService.deletePlayedGame(gn.id, pg.id).then(() => {
       this.snackBar.open(`${pg.gameName} entfernt`, 'OK', { duration: 2000 });
+    });
+  }
+
+  openEditPlayersDialog() {
+    const gn = this.gameNight();
+    if (!gn) return;
+
+    const dialogRef = this.dialog.open(EditPlayersDialogComponent, {
+      width: '100%',
+      maxWidth: '500px',
+      data: {
+        allPlayers: this.allPlayers(),
+        selectedPlayerIds: gn.playerIds,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result: string[] | undefined) => {
+      if (result && gn) {
+        this.gameNightService.update(gn.id, { playerIds: result }).then(() => {
+          this.snackBar.open('Teilnehmer aktualisiert!', 'OK', { duration: 2000 });
+        });
+      }
     });
   }
 }
