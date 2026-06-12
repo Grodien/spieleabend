@@ -110,16 +110,14 @@ import { GameDialogComponent } from './game-dialog';
                   </div>
                 </div>
               } @else {
-                <!-- Back Side / Player Stats -->
-                <div class="card-content-back" (click)="$event.stopPropagation()">
+                <!-- Back Side / Player Stats (No stop propagation to allow flip back on card tap) -->
+                <div class="card-content-back">
                   <div class="back-header">
                     <div class="back-title-container">
                       <span class="back-title">📈 Statistiken</span>
                       <span class="back-subtitle">{{ game.name }}</span>
                     </div>
-                    <button mat-icon-button (click)="$event.stopPropagation(); toggleFlip(game.id)" class="close-back-btn" matTooltip="Zurück">
-                      <mat-icon>undo</mat-icon>
-                    </button>
+                    <span class="tap-back-hint">Tippen zum Schließen ↩</span>
                   </div>
                   
                   <div class="back-body">
@@ -169,17 +167,19 @@ import { GameDialogComponent } from './game-dialog';
     }
 
     .game-card {
-      min-height: 160px;
+      height: 160px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
       cursor: pointer;
       padding: 20px;
-      transition: all var(--transition-normal);
+      transition: height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), border-color var(--transition-normal), box-shadow var(--transition-normal);
       animation: slideInUp 0.4s ease-out backwards;
+      overflow: hidden;
 
       &.showing-stats {
+        height: 290px;
         background: linear-gradient(135deg, rgba(20, 10, 45, 0.85), rgba(30, 15, 50, 0.85));
         border-color: rgba(139, 92, 246, 0.35);
 
@@ -350,15 +350,12 @@ import { GameDialogComponent } from './game-dialog';
       max-width: 180px;
     }
 
-    .close-back-btn {
-      margin-top: -4px;
-      margin-right: -8px;
+    .tap-back-hint {
+      font-size: 10px;
       color: var(--color-text-muted);
-      
-      &:hover {
-        color: var(--color-text-primary);
-        background: rgba(255, 255, 255, 0.05);
-      }
+      opacity: 0.6;
+      font-weight: 500;
+      align-self: center;
     }
 
     .back-body {
@@ -366,7 +363,6 @@ import { GameDialogComponent } from './game-dialog';
       overflow-y: auto;
       margin-right: -4px;
       padding-right: 4px;
-      max-height: 100px;
 
       &::-webkit-scrollbar {
         width: 4px;
