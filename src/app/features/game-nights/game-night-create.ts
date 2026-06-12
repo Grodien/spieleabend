@@ -194,7 +194,11 @@ export class GameNightCreateComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
 
   players = signal<Player[]>([]);
-  date: Date = new Date();
+  date: Date = (() => {
+    const d = new Date();
+    d.setHours(13, 0, 0, 0);
+    return d;
+  })();
   costPerGame: 3 | 5 = 3;
   selectedPlayerIds = new Set<string>();
 
@@ -219,8 +223,11 @@ export class GameNightCreateComponent implements OnInit {
   save() {
     if (!this.canSave()) return;
 
+    const finalDate = new Date(this.date);
+    finalDate.setHours(13, 0, 0, 0);
+
     this.gameNightService
-      .create(this.date, this.costPerGame, Array.from(this.selectedPlayerIds))
+      .create(finalDate, this.costPerGame, Array.from(this.selectedPlayerIds))
       .then((id) => {
         this.snackBar.open('Spieleabend erstellt!', 'OK', { duration: 2000 });
         this.router.navigate(['/game-nights', id]);
