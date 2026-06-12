@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -28,6 +29,7 @@ interface PlayerStats {
   standalone: true,
   imports: [
     CommonModule, 
+    RouterLink,
     MatIconModule, 
     DecimalPipe, 
     DatePipe, 
@@ -78,7 +80,9 @@ interface PlayerStats {
 
       <!-- Nächster Spieleabend Card -->
       @if (nextGameNight()) {
-        <div class="section glass-card next-night-card" style="animation: slideInUp 0.5s ease-out 0.02s backwards">
+        <div class="section glass-card next-night-card" 
+             [routerLink]="['/game-nights', nextGameNight()!.id]" 
+             style="animation: slideInUp 0.5s ease-out 0.02s backwards; cursor: pointer;">
           <div class="next-night-content">
             <div class="next-night-info">
               <span class="next-night-label">📅 Nächster Spieleabend</span>
@@ -86,10 +90,21 @@ interface PlayerStats {
                 {{ nextGameNight()!.date | date:'dd.MM.yyyy' }} ({{ getDaysUntil(nextGameNight()!.date) }})
               </span>
             </div>
-            <button mat-flat-button class="ics-btn" (click)="downloadIcs(nextGameNight()!)">
-              <mat-icon>calendar_today</mat-icon>
-              Kalendereintrag (.ics)
-            </button>
+            
+            <div class="next-night-actions">
+              <a [href]="getGoogleCalendarUrl(nextGameNight()!)" target="_blank" (click)="$event.stopPropagation()" class="calendar-action-btn google-btn">
+                <mat-icon class="btn-icon">calendar_today</mat-icon>
+                Google
+              </a>
+              <a [href]="getOutlookCalendarUrl(nextGameNight()!)" target="_blank" (click)="$event.stopPropagation()" class="calendar-action-btn outlook-btn">
+                <mat-icon class="btn-icon">mail</mat-icon>
+                Outlook
+              </a>
+              <button class="calendar-action-btn ics-btn" (click)="downloadIcs(nextGameNight()!); $event.stopPropagation()">
+                <mat-icon class="btn-icon">download</mat-icon>
+                ICS
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -626,10 +641,12 @@ interface PlayerStats {
       border-color: rgba(96, 165, 250, 0.2);
       margin-bottom: 24px;
       padding: 20px 24px;
+      transition: all var(--transition-normal);
       
       &:hover {
-        border-color: rgba(96, 165, 250, 0.4);
-        box-shadow: var(--shadow-md), 0 0 20px rgba(96, 165, 250, 0.1);
+        border-color: rgba(96, 165, 250, 0.5);
+        box-shadow: var(--shadow-md), 0 0 20px rgba(96, 165, 250, 0.15);
+        transform: translateY(-2px);
       }
     }
 
@@ -661,13 +678,56 @@ interface PlayerStats {
       color: var(--color-text-primary);
     }
 
-    .ics-btn {
-      background: var(--color-info) !important;
-      color: #000000 !important;
+    .next-night-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .calendar-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
       font-weight: 600;
-      
+      text-decoration: none;
+      border: 1px solid var(--color-border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--color-text-primary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+
+      .btn-icon {
+        font-size: 16px !important;
+        width: 16px !important;
+        height: 16px !important;
+      }
+
       &:hover {
-        box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-1px);
+      }
+
+      &.google-btn:hover {
+        border-color: rgba(219, 68, 85, 0.4);
+        background: rgba(219, 68, 85, 0.08);
+        color: #f87171;
+      }
+
+      &.outlook-btn:hover {
+        border-color: rgba(0, 120, 212, 0.4);
+        background: rgba(0, 120, 212, 0.08);
+        color: #60a5fa;
+      }
+
+      &.ics-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.08);
+        color: #c084fc;
       }
     }
 
@@ -1043,5 +1103,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { duration: 8000 }
       );
     }
+  }
+
+  getGoogleCalendarUrl(night: GameNight): string {
+    const startYMD = night.date.replace(/-/g, '');
+    const start = new Date(night.date);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 1);
+    const endYMD = end.toISOString().split('T')[0].replace(/-/g, '');
+
+    const title = encodeURIComponent('Spieleabend 🎲');
+    const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
+    
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startYMD}/${endYMD}&details=${details}`;
+  }
+
+  getOutlookCalendarUrl(night: GameNight): string {
+    const title = encodeURIComponent('Spieleabend 🎲');
+    const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
+    
+    return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${night.date}&enddt=${night.date}&allday=true&body=${details}`;
   }
 }
