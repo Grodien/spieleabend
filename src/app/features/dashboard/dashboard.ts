@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { PlayerService } from '../../core/services/player.service';
 import { GameService } from '../../core/services/game.service';
@@ -22,7 +22,7 @@ interface PlayerStats {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, DecimalPipe],
+  imports: [CommonModule, MatIconModule, DecimalPipe, DatePipe],
   template: `
     <div class="page-container">
       <div class="page-header">
@@ -53,6 +53,54 @@ interface PlayerStats {
         </div>
       </div>
 
+      <!-- Letzter Spieleabend Card -->
+      @if (lastGameNight()) {
+        <div class="section glass-card last-night-section" style="animation: slideInUp 0.5s ease-out 0.05s backwards">
+          <div class="last-night-header">
+            <h3 class="section-title" style="margin-bottom: 0;">🌙 Letzter Spieleabend</h3>
+            <span class="last-night-date-badge">{{ lastGameNight()!.date | date:'dd.MM.yyyy' }}</span>
+          </div>
+          
+          <div class="last-night-content-grid">
+            <!-- Left col: Player balances for that night -->
+            <div class="last-night-col">
+              <h4 class="sub-title">💰 Kostenverteilung an diesem Abend</h4>
+              <div class="last-night-players-list">
+                @for (entry of lastGameNightCosts(); track entry.playerId) {
+                  <div class="last-night-player-row">
+                    <div class="bar-avatar small">{{ entry.name.charAt(0).toUpperCase() }}</div>
+                    <span class="player-name-text">{{ entry.name }}</span>
+                    <span class="player-cost-val" [class.cost-zero]="entry.cost === 0" [class.cost-positive]="entry.cost > 0">
+                      {{ entry.cost | number:'1.2-2' }} CHF
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+            
+            <!-- Right col: Games played -->
+            <div class="last-night-col">
+              <h4 class="sub-title">🎯 Gespielte Spiele & Gewinner</h4>
+              @if (lastGameNightPlayedGames().length === 0) {
+                <div class="empty-hint-sm">Keine Spiele in dieser Runde erfasst.</div>
+              } @else {
+                <div class="last-night-games-list">
+                  @for (game of lastGameNightPlayedGames(); track game.id) {
+                    <div class="last-night-game-row">
+                      <span class="game-icon-mini">🎲</span>
+                      <div class="game-info-mini">
+                        <span class="game-name-text">{{ game.gameName }}</span>
+                        <span class="game-winner-text">Gewinner: 🏆 {{ getGameWinners(game) }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
       @if (playerStats().length > 0) {
         <!-- Total Costs per Player -->
         <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.1s backwards">
@@ -62,7 +110,12 @@ interface PlayerStats {
               <div class="bar-row">
                 <div class="bar-label">
                   <div class="bar-avatar">{{ stat.name.charAt(0).toUpperCase() }}</div>
-                  <span>{{ stat.name }}</span>
+                  <div class="bar-player-info">
+                    <span class="bar-player-name">{{ stat.name }}</span>
+                    <span class="bar-player-detail">
+                      {{ stat.nightsPlayed }} @if (stat.nightsPlayed === 1) { Abend } @else { Abende }
+                    </span>
+                  </div>
                 </div>
                 <div class="bar-track">
                   <div class="bar-fill"
@@ -209,7 +262,23 @@ interface PlayerStats {
       width: 120px;
       min-width: 120px;
       font-size: 14px;
-      font-weight: 500;
+    }
+
+    .bar-player-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      align-items: flex-start;
+    }
+
+    .bar-player-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .bar-player-detail {
+      font-size: 11px;
+      color: var(--color-text-muted);
     }
 
     .bar-avatar {
@@ -394,6 +463,106 @@ interface PlayerStats {
       padding: 16px 0;
     }
 
+    /* Letzter Spieleabend Styles */
+    .last-night-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 12px;
+    }
+
+    .last-night-date-badge {
+      padding: 4px 12px;
+      background: var(--color-bg-surface);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-accent-light);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .last-night-content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 32px;
+    }
+
+    .last-night-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sub-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .last-night-players-list, .last-night-games-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .last-night-player-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--color-bg-surface);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      
+      .player-name-text {
+        font-weight: 500;
+        font-size: 14px;
+        flex: 1;
+      }
+      
+      .player-cost-val {
+        font-weight: 700;
+        font-size: 14px;
+      }
+    }
+
+    .last-night-game-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--color-bg-surface);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      
+      .game-icon-mini {
+        font-size: 20px;
+      }
+      
+      .game-info-mini {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.3;
+      }
+      
+      .game-name-text {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      
+      .game-winner-text {
+        font-size: 12px;
+        color: var(--color-text-secondary);
+      }
+    }
+
+    .empty-hint-sm {
+      color: var(--color-text-muted);
+      font-size: 13px;
+      font-style: italic;
+      padding: 8px 0;
+    }
+
     @media (max-width: 1024px) {
       .kpi-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -416,6 +585,11 @@ interface PlayerStats {
       .bar-label {
         width: 80px;
         min-width: 80px;
+      }
+
+      .last-night-content-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
       }
     }
   `,
@@ -587,5 +761,56 @@ export class DashboardComponent implements OnInit, OnDestroy {
   getGameBarWidth(count: number): number {
     const maxCount = Math.max(...this.gameCounts().map((gc) => gc.count), 1);
     return (count / maxCount) * 100;
+  }
+
+  lastGameNight = computed(() => {
+    const nights = this.gameNights();
+    if (nights.length === 0) return null;
+    return [...nights].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  });
+
+  lastGameNightPlayedGames = computed(() => {
+    const last = this.lastGameNight();
+    if (!last) return [];
+    return this.allPlayedGames().get(last.id) || [];
+  });
+
+  lastGameNightCosts = computed(() => {
+    const last = this.lastGameNight();
+    const games = this.lastGameNightPlayedGames();
+    if (!last) return [];
+
+    const playerTotals = new Map<string, number>();
+    last.playerIds.forEach((pid) => playerTotals.set(pid, 0));
+
+    games.forEach((g) => {
+      Object.entries(g.costs).forEach(([pid, cost]) => {
+        playerTotals.set(pid, (playerTotals.get(pid) || 0) + cost);
+      });
+    });
+
+    return Array.from(playerTotals.entries())
+      .map(([playerId, cost]) => ({
+        playerId,
+        name: this.players().find((p) => p.id === playerId)?.name || '?',
+        cost,
+      }))
+      .sort((a, b) => a.cost - b.cost);
+  });
+
+  getGameWinners(game: PlayedGame): string {
+    const scores = Object.entries(game.scores);
+    if (scores.length === 0) return '-';
+
+    const sorted = [...scores].sort((a, b) =>
+      game.scoringSystem === 'highest' ? b[1] - a[1] : a[1] - b[1]
+    );
+    const bestScore = sorted[0][1];
+
+    const winnerNames = scores
+      .filter(([, score]) => score === bestScore)
+      .map(([pid]) => this.players().find((p) => p.id === pid)?.name || '?');
+
+    return winnerNames.join(' & ');
   }
 }
