@@ -59,15 +59,15 @@ import { GameDialogComponent } from './game-dialog';
       } @else {
         <div class="card-grid">
           @for (game of sortedGames(); track game.id; let i = $index) {
-            <div class="game-card-container" 
-                 [class.flipped]="flippedGameId() === game.id" 
+            <div class="glass-card game-card" 
+                 [class.showing-stats]="flippedGameId() === game.id" 
                  (click)="toggleFlip(game.id)"
                  [style.animation-delay]="i * 50 + 'ms'" 
                  style="animation: slideInUp 0.4s ease-out backwards">
-              <div class="game-card-inner">
-                
-                <!-- Front Side -->
-                <div class="game-front">
+              
+              @if (flippedGameId() !== game.id) {
+                <!-- Front Side / General Info -->
+                <div class="card-content-front">
                   <!-- Play count badge -->
                   <div class="play-count-badge" matTooltip="Anzahl gespielter Partien" matTooltipPosition="above">
                     {{ getPlayCount(game.id) }} Partien
@@ -109,9 +109,9 @@ import { GameDialogComponent } from './game-dialog';
                     </button>
                   </div>
                 </div>
-                
-                <!-- Back Side -->
-                <div class="game-back">
+              } @else {
+                <!-- Back Side / Player Stats -->
+                <div class="card-content-back" (click)="$event.stopPropagation()">
                   <div class="back-header">
                     <div class="back-title-container">
                       <span class="back-title">📈 Statistiken</span>
@@ -122,7 +122,7 @@ import { GameDialogComponent } from './game-dialog';
                     </button>
                   </div>
                   
-                  <div class="back-body" (click)="$event.stopPropagation()">
+                  <div class="back-body">
                     @if (getGamePlayerStats(game.id).length === 0) {
                       <div class="no-stats">
                         <div class="no-stats-icon">📊</div>
@@ -148,8 +148,8 @@ import { GameDialogComponent } from './game-dialog';
                     }
                   </div>
                 </div>
+              }
 
-              </div>
             </div>
           }
         </div>
@@ -168,80 +168,47 @@ import { GameDialogComponent } from './game-dialog';
       margin-bottom: -16px;
     }
 
-    .game-card-container {
-      perspective: 1500px;
-      -webkit-perspective: 1500px;
-      height: 160px;
-      cursor: pointer;
-      position: relative;
-      background: transparent;
-      border: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .game-card-inner {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-      transform-style: preserve-3d;
-      -webkit-transform-style: preserve-3d;
-      will-change: transform;
-    }
-
-    .game-card-container.flipped .game-card-inner {
-      transform: rotateY(180deg);
-    }
-
-    .game-front, .game-back {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-      padding: 18px 20px;
-      box-sizing: border-box;
-      border-radius: var(--radius-lg);
-      background: linear-gradient(135deg, rgba(25, 20, 40, 0.65), rgba(40, 30, 65, 0.65));
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    .game-card {
+      min-height: 160px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      transform: translate3d(0, 0, 0);
-      -webkit-transform: translate3d(0, 0, 0);
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      cursor: pointer;
+      padding: 20px;
+      transition: all var(--transition-normal);
+      animation: slideInUp 0.4s ease-out backwards;
 
-      &:hover {
-        transform: none !important;
+      &.showing-stats {
+        background: linear-gradient(135deg, rgba(20, 10, 45, 0.85), rgba(30, 15, 50, 0.85));
+        border-color: rgba(139, 92, 246, 0.35);
+
+        &:hover {
+          border-color: rgba(139, 92, 246, 0.5);
+          box-shadow: var(--shadow-md), 0 0 15px rgba(139, 92, 246, 0.2);
+        }
       }
     }
 
-    .game-front {
-      z-index: 2;
+    .card-content-front, .card-content-back {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 100%;
+      height: 100%;
+      flex-grow: 1;
+      animation: cardFadeIn 0.2s ease-out;
     }
 
-    .game-back {
-      transform: rotateY(180deg) translate3d(0, 0, 0);
-      -webkit-transform: rotateY(180deg) translate3d(0, 0, 0);
-      background: linear-gradient(135deg, rgba(15, 10, 30, 0.85), rgba(30, 15, 50, 0.85));
-      border-color: rgba(139, 92, 246, 0.25);
-    }
-
-    /* Container hover styles */
-    .game-card-container:hover .game-front {
-      border-color: rgba(245, 158, 11, 0.25);
-      box-shadow: 0 8px 32px 0 rgba(245, 158, 11, 0.06), var(--shadow-glow);
-    }
-
-    .game-card-container:hover .game-back {
-      border-color: rgba(139, 92, 246, 0.4);
-      box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.12), 0 0 15px rgba(139, 92, 246, 0.1);
+    @keyframes cardFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
     /* Overrides to prevent flickering of inner elements */
@@ -273,6 +240,7 @@ import { GameDialogComponent } from './game-dialog';
       gap: 10px;
       flex-grow: 1;
       justify-content: center;
+      margin-bottom: 12px;
     }
 
     .game-icon-title {
@@ -345,7 +313,7 @@ import { GameDialogComponent } from './game-dialog';
       }
     }
 
-    .game-card-container:hover .delete-btn {
+    .game-card:hover .delete-btn {
       opacity: 0.6;
     }
 
@@ -398,6 +366,7 @@ import { GameDialogComponent } from './game-dialog';
       overflow-y: auto;
       margin-right: -4px;
       padding-right: 4px;
+      max-height: 100px;
 
       &::-webkit-scrollbar {
         width: 4px;
@@ -521,6 +490,20 @@ import { GameDialogComponent } from './game-dialog';
     .no-stats-icon {
       font-size: 20px;
       opacity: 0.6;
+    }
+
+    @media (max-width: 600px) {
+      .header-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 12px;
+      }
+
+      .sort-field {
+        width: 100%;
+        margin-bottom: 0;
+      }
     }
   `,
 })
