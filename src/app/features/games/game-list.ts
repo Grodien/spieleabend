@@ -67,47 +67,51 @@ import { GameDialogComponent } from './game-dialog';
               <div class="game-card-inner">
                 
                 <!-- Front Side -->
-                <div class="game-card-front">
-                  <!-- Play count badge in top-right corner -->
+                <div class="game-front">
+                  <!-- Play count badge -->
                   <div class="play-count-badge" matTooltip="Anzahl gespielter Partien" matTooltipPosition="above">
-                    {{ getPlayCount(game.id) }}
+                    {{ getPlayCount(game.id) }} Partien
                   </div>
 
-                  <div class="game-header">
-                    <div class="game-icon">🎲</div>
-                    <div class="game-info">
-                      <div class="game-name">{{ game.name }}</div>
-                      <div class="game-badges">
-                        <span class="chip-badge" [class.chip-highest]="game.scoringSystem === 'highest'" [class.chip-lowest]="game.scoringSystem === 'lowest'">
-                          <mat-icon class="chip-icon">{{ game.scoringSystem === 'highest' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
-                          {{ game.scoringSystem === 'highest' ? 'Highest Wins' : 'Lowest Wins' }}
+                  <div class="game-main-info">
+                    <div class="game-icon-title">
+                      <span class="game-emoji">🎲</span>
+                      <span class="game-title">{{ game.name }}</span>
+                    </div>
+                    <div class="game-badges">
+                      <span class="chip-badge" [class.chip-highest]="game.scoringSystem === 'highest'" [class.chip-lowest]="game.scoringSystem === 'lowest'">
+                        <mat-icon class="chip-icon">{{ game.scoringSystem === 'highest' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                        {{ game.scoringSystem === 'highest' ? 'Highest Wins' : 'Lowest Wins' }}
+                      </span>
+                      @if (game.isTeamGame) {
+                        <span class="chip-badge chip-team">
+                          <mat-icon class="chip-icon">groups</mat-icon>
+                          Teamspiel
                         </span>
-                        @if (game.isTeamGame) {
-                          <span class="chip-badge chip-team">
-                            <mat-icon class="chip-icon">groups</mat-icon>
-                            Teamspiel
-                          </span>
-                        }
-                        @if (getFirstPlayedDate(game.id)) {
-                          <span class="chip-badge chip-first-play">
-                            <mat-icon class="chip-icon">calendar_month</mat-icon>
-                            Zuerst gespielt: {{ getFirstPlayedDate(game.id) | date:'dd.MM.yyyy' }}
-                          </span>
-                        }
-                      </div>
+                      }
                     </div>
                   </div>
                   
-                  <div class="front-footer-actions">
+                  <div class="game-footer">
+                    @if (getFirstPlayedDate(game.id)) {
+                      <span class="first-played-text">
+                        <mat-icon class="footer-icon">calendar_month</mat-icon>
+                        Erste Partie: {{ getFirstPlayedDate(game.id) | date:'dd.MM.yyyy' }}
+                      </span>
+                    } @else {
+                      <span class="first-played-text unplayed">
+                        <mat-icon class="footer-icon">hourglass_empty</mat-icon>
+                        Noch nie gespielt
+                      </span>
+                    }
                     <button mat-icon-button (click)="deleteGame(game); $event.stopPropagation()" class="delete-btn" matTooltip="Spiel löschen">
                       <mat-icon>delete_outline</mat-icon>
                     </button>
-                    <span class="info-tap-hint">Statistik anzeigen... 🔄</span>
                   </div>
                 </div>
                 
                 <!-- Back Side -->
-                <div class="game-card-back">
+                <div class="game-back">
                   <div class="back-header">
                     <div class="back-title-container">
                       <span class="back-title">📈 Statistiken</span>
@@ -165,117 +169,131 @@ import { GameDialogComponent } from './game-dialog';
     }
 
     .game-card-container {
-      perspective: 1200px;
-      height: 180px;
+      perspective: 1500px;
+      -webkit-perspective: 1500px;
+      height: 160px;
       cursor: pointer;
       position: relative;
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
     }
 
     .game-card-inner {
       position: relative;
       width: 100%;
       height: 100%;
-      transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
       transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      will-change: transform;
     }
 
     .game-card-container.flipped .game-card-inner {
       transform: rotateY(180deg);
     }
 
-    .game-card-front, .game-card-back {
+    .game-front, .game-back {
       position: absolute;
       width: 100%;
       height: 100%;
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
       top: 0;
       left: 0;
-      margin: 0;
-      padding: 20px;
+      padding: 18px 20px;
       box-sizing: border-box;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(25, 20, 40, 0.65), rgba(40, 30, 65, 0.65));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      border-radius: var(--radius-lg);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--color-border);
-      box-shadow: var(--shadow-sm);
-      transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      transform: translate3d(0, 0, 0);
+      -webkit-transform: translate3d(0, 0, 0);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
       &:hover {
         transform: none !important;
       }
     }
 
-    .game-card-front {
-      background: var(--gradient-card);
+    .game-front {
+      z-index: 2;
     }
 
-    .game-card-back {
-      transform: rotateY(180deg);
-      background: linear-gradient(135deg, rgba(20, 10, 45, 0.85), rgba(40, 15, 75, 0.85));
+    .game-back {
+      transform: rotateY(180deg) translate3d(0, 0, 0);
+      -webkit-transform: rotateY(180deg) translate3d(0, 0, 0);
+      background: linear-gradient(135deg, rgba(15, 10, 30, 0.85), rgba(30, 15, 50, 0.85));
       border-color: rgba(139, 92, 246, 0.25);
     }
 
-    .game-card-container:hover {
-      .game-card-front {
-        border-color: rgba(245, 158, 11, 0.2);
-        box-shadow: var(--shadow-md), var(--shadow-glow);
-      }
-      .game-card-back {
-        border-color: rgba(139, 92, 246, 0.4);
-        box-shadow: var(--shadow-md), 0 0 15px rgba(139, 92, 246, 0.2);
-      }
+    /* Container hover styles */
+    .game-card-container:hover .game-front {
+      border-color: rgba(245, 158, 11, 0.25);
+      box-shadow: 0 8px 32px 0 rgba(245, 158, 11, 0.06), var(--shadow-glow);
     }
 
+    .game-card-container:hover .game-back {
+      border-color: rgba(139, 92, 246, 0.4);
+      box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.12), 0 0 15px rgba(139, 92, 246, 0.1);
+    }
+
+    /* Overrides to prevent flickering of inner elements */
+    .chip-badge:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Play count badge */
     .play-count-badge {
       position: absolute;
-      top: -10px;
-      right: -10px;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #c084fc, #8b5cf6);
-      color: #ffffff;
-      font-size: 11px;
+      top: 14px;
+      right: 18px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(192, 132, 252, 0.12), rgba(139, 92, 246, 0.12));
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      color: #c084fc;
+      font-size: 10px;
       font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid var(--color-bg-card);
-      box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
-      transition: transform var(--transition-fast);
-      z-index: 2;
-
-      &:hover {
-        transform: scale(1.1);
-      }
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
     }
 
-    .game-header {
+    /* Header & Title */
+    .game-main-info {
       display: flex;
-      align-items: flex-start;
-      gap: 16px;
+      flex-direction: column;
+      gap: 10px;
+      flex-grow: 1;
+      justify-content: center;
     }
 
-    .game-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-md);
-      background: var(--color-bg-surface);
+    .game-icon-title {
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 12px;
+    }
+
+    .game-emoji {
       font-size: 24px;
-      flex-shrink: 0;
     }
 
-    .game-name {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      padding-right: 12px;
+    .game-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
     }
 
     .game-badges {
@@ -284,33 +302,51 @@ import { GameDialogComponent } from './game-dialog';
       flex-wrap: wrap;
     }
 
-    .delete-btn {
-      opacity: 0.5;
-      transition: opacity var(--transition-fast), color var(--transition-fast);
-      flex-shrink: 0;
-
-      &:hover {
-        opacity: 1;
-        color: var(--color-danger);
-      }
-    }
-
-    .front-footer-actions {
+    /* Footer actions */
+    .game-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      width: 100%;
-      margin-top: auto;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 10px;
+      margin-top: 6px;
     }
 
-    .info-tap-hint {
+    .first-played-text {
       font-size: 11px;
-      font-weight: 500;
       color: var(--color-text-muted);
-      opacity: 0.7;
       display: flex;
       align-items: center;
       gap: 4px;
+
+      .footer-icon {
+        font-size: 13px !important;
+        width: 13px !important;
+        height: 13px !important;
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      &.unplayed {
+        color: rgba(255, 255, 255, 0.3);
+      }
+    }
+
+    .delete-btn {
+      color: var(--color-text-muted);
+      opacity: 0.4;
+      transition: opacity 0.2s ease, color 0.2s ease, background 0.2s ease;
+      margin-bottom: -6px;
+      margin-right: -10px;
+
+      &:hover {
+        opacity: 1 !important;
+        color: var(--color-danger) !important;
+        background: rgba(239, 68, 68, 0.08) !important;
+      }
+    }
+
+    .game-card-container:hover .delete-btn {
+      opacity: 0.6;
     }
 
     /* Back components */
