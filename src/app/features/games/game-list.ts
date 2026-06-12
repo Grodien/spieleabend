@@ -128,7 +128,8 @@ export class GameListComponent implements OnInit {
 
   openDialog() {
     const dialogRef = this.dialog.open(GameDialogComponent, {
-      width: '450px',
+      width: '100%',
+      maxWidth: '450px',
     });
 
     dialogRef.afterClosed().subscribe((result: { name: string; scoringSystem: string; isTeamGame: boolean } | undefined) => {

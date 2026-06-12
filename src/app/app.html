@@ -1,5 +1,5 @@
 <mat-sidenav-container class="app-container">
-  <mat-sidenav mode="side" opened class="app-sidenav">
+  <mat-sidenav [mode]="isDesktop() ? 'side' : 'over'" [opened]="isDesktop()" class="app-sidenav">
     <div class="sidenav-header">
       <div class="logo">
         <span class="logo-icon">🎲</span>
@@ -23,6 +23,28 @@
   </mat-sidenav>
 
   <mat-sidenav-content class="app-content">
-    <router-outlet />
+    @if (!isDesktop()) {
+      <div class="mobile-header">
+        <span class="logo-icon">🎲</span>
+        <span class="mobile-title">Spieleabend</span>
+      </div>
+    }
+
+    <div class="main-content-scroll">
+      <router-outlet />
+    </div>
+
+    @if (!isDesktop()) {
+      <nav class="mobile-nav-bar">
+        @for (item of navItems; track item.path) {
+          <a [routerLink]="item.path"
+             routerLinkActive="mobile-active-link"
+             class="mobile-nav-item">
+            <mat-icon>{{ item.icon }}</mat-icon>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+    }
   </mat-sidenav-content>
 </mat-sidenav-container>

@@ -102,7 +102,8 @@ export class PlayerListComponent implements OnInit {
 
   openDialog() {
     const dialogRef = this.dialog.open(PlayerDialogComponent, {
-      width: '400px',
+      width: '100%',
+      maxWidth: '400px',
     });
 
     dialogRef.afterClosed().subscribe((name: string) => {

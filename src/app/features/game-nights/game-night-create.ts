@@ -166,6 +166,20 @@ import { Player } from '../../core/models/player.model';
       margin-top: 8px;
     }
 
+    @media (max-width: 600px) {
+      .form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 8px;
+
+        button {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+        }
+      }
+    }
+
     .empty-hint {
       font-size: 14px;
       color: var(--color-text-muted);

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -29,4 +29,11 @@ export class App {
     { path: '/players', icon: 'group', label: 'Spieler' },
     { path: '/games', icon: 'sports_esports', label: 'Spiele' },
   ];
+
+  isDesktop = signal(window.innerWidth >= 768);
+
+  @HostListener('window:resize')
+  onResize() {
+    this.isDesktop.set(window.innerWidth >= 768);
+  }
 }

@@ -146,8 +146,9 @@ import { AddGameDialogComponent } from './add-game-dialog';
 
     .header-meta {
       display: flex;
-      gap: 16px;
+      gap: 12px 16px;
       margin-top: 6px;
+      flex-wrap: wrap;
     }
 
     .meta-badge {
@@ -175,19 +176,20 @@ import { AddGameDialogComponent } from './add-game-dialog';
     }
 
     .cost-grid {
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      width: 100%;
     }
 
     .cost-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 16px;
+      padding: 8px 12px;
       border-radius: var(--radius-md);
       background: var(--color-bg-surface);
-      min-width: 180px;
+      min-width: 0;
     }
 
     .cost-player-avatar {
@@ -326,6 +328,25 @@ import { AddGameDialogComponent } from './add-game-dialog';
       color: var(--color-text-muted);
       font-size: 16px;
     }
+
+    @media (max-width: 600px) {
+      .score-header-row, .score-row {
+        padding: 10px 8px;
+        font-size: 13px;
+      }
+      
+      .rank-col {
+        width: 40px;
+      }
+      
+      .score-val-col {
+        width: 60px;
+      }
+      
+      .cost-col {
+        width: 85px;
+      }
+    }
   `,
 })
 export class GameNightDetailComponent implements OnInit {
@@ -416,7 +437,8 @@ export class GameNightDetailComponent implements OnInit {
     if (!gn) return;
 
     const dialogRef = this.dialog.open(AddGameDialogComponent, {
-      width: '500px',
+      width: '100%',
+      maxWidth: '500px',
       data: {
         games: this.games(),
         playerIds: gn.playerIds,
