@@ -3,6 +3,7 @@ import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
 import { PlayerService } from '../../core/services/player.service';
 import { GameService } from '../../core/services/game.service';
 import { GameNightService } from '../../core/services/game-night.service';
@@ -24,7 +25,15 @@ interface PlayerStats {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, DecimalPipe, DatePipe, MatFormFieldModule, MatSelectModule],
+  imports: [
+    CommonModule, 
+    MatIconModule, 
+    DecimalPipe, 
+    DatePipe, 
+    MatFormFieldModule, 
+    MatSelectModule, 
+    MatButtonModule
+  ],
   template: `
     <div class="page-container">
       <div class="page-header dashboard-header">
@@ -64,6 +73,24 @@ interface PlayerStats {
           <div class="stat-label">Total CHF umverteilt</div>
         </div>
       </div>
+
+      <!-- Nächster Spieleabend Card -->
+      @if (nextGameNight()) {
+        <div class="section glass-card next-night-card" style="animation: slideInUp 0.5s ease-out 0.02s backwards">
+          <div class="next-night-content">
+            <div class="next-night-info">
+              <span class="next-night-label">📅 Nächster Spieleabend</span>
+              <span class="next-night-date">
+                {{ nextGameNight()!.date | date:'dd.MM.yyyy' }} ({{ getDaysUntil(nextGameNight()!.date) }})
+              </span>
+            </div>
+            <button mat-flat-button class="ics-btn" (click)="downloadIcs(nextGameNight()!)">
+              <mat-icon>calendar_today</mat-icon>
+              Kalendereintrag (.ics)
+            </button>
+          </div>
+        </div>
+      }
 
       <!-- Letzter Spieleabend Card -->
       @if (lastGameNight()) {
@@ -592,6 +619,56 @@ interface PlayerStats {
       padding: 8px 0;
     }
 
+    .next-night-card {
+      background: linear-gradient(145deg, rgba(30, 30, 42, 0.95), rgba(26, 26, 36, 0.85));
+      border-color: rgba(96, 165, 250, 0.2);
+      margin-bottom: 24px;
+      padding: 20px 24px;
+      
+      &:hover {
+        border-color: rgba(96, 165, 250, 0.4);
+        box-shadow: var(--shadow-md), 0 0 20px rgba(96, 165, 250, 0.1);
+      }
+    }
+
+    .next-night-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .next-night-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .next-night-label {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .next-night-date {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+
+    .ics-btn {
+      background: var(--color-info) !important;
+      color: #000000 !important;
+      font-weight: 600;
+      
+      &:hover {
+        box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+      }
+    }
+
     @media (max-width: 1024px) {
       .kpi-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -690,12 +767,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     );
   });
 
+  pastFilteredGameNights = computed(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return this.filteredGameNights().filter(n => n.date && n.date <= todayStr);
+  });
+
   // Computed stats
-  totalNights = computed(() => this.filteredGameNights().length);
+  totalNights = computed(() => this.pastFilteredGameNights().length);
 
   totalGamesPlayed = computed(() => {
     let count = 0;
-    this.filteredGameNights().forEach((night) => {
+    this.pastFilteredGameNights().forEach((night) => {
       const games = this.allPlayedGames().get(night.id) || [];
       count += games.length;
     });
@@ -704,7 +786,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   totalSpent = computed(() => {
     let total = 0;
-    this.filteredGameNights().forEach((night) => {
+    this.pastFilteredGameNights().forEach((night) => {
       const games = this.allPlayedGames().get(night.id) || [];
       games.forEach((pg) => {
         Object.values(pg.costs).forEach((cost) => {
@@ -730,7 +812,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
     });
 
-    this.filteredGameNights().forEach((night) => {
+    this.pastFilteredGameNights().forEach((night) => {
       const nightPlayers = new Set(night.playerIds);
       nightPlayers.forEach((pid) => {
         const s = stats.get(pid);
@@ -786,7 +868,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   gameCounts = computed(() => {
     const counts = new Map<string, number>();
-    this.filteredGameNights().forEach((night) => {
+    this.pastFilteredGameNights().forEach((night) => {
       const games = this.allPlayedGames().get(night.id) || [];
       games.forEach((pg) => {
         counts.set(pg.gameName, (counts.get(pg.gameName) || 0) + 1);
@@ -803,7 +885,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   });
 
   avgPlayersPerNight = computed(() => {
-    const nights = this.filteredGameNights();
+    const nights = this.pastFilteredGameNights();
     if (nights.length === 0) return 0;
     const totalPlayers = nights.reduce((sum, n) => sum + n.playerIds.length, 0);
     return totalPlayers / nights.length;
@@ -834,9 +916,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   lastGameNight = computed(() => {
-    const nights = this.filteredGameNights();
+    const nights = this.pastFilteredGameNights();
     if (nights.length === 0) return null;
     return [...nights].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  });
+
+  nextGameNight = computed(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const futureNights = this.gameNights().filter(n => n.date && n.date > todayStr);
+    if (futureNights.length === 0) return null;
+    return [...futureNights].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
   });
 
   lastGameNightPlayedGames = computed(() => {
@@ -882,5 +971,55 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .map(([pid]) => this.players().find((p) => p.id === pid)?.name || '?');
 
     return winnerNames.join(' & ');
+  }
+
+  getDaysUntil(dateStr: string): string {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(dateStr);
+    target.setHours(0, 0, 0, 0);
+    
+    const diffTime = target.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'heute';
+    if (diffDays === 1) return 'morgen';
+    if (diffDays === 2) return 'übermorgen';
+    return `in ${diffDays} Tagen`;
+  }
+
+  downloadIcs(night: GameNight) {
+    const start = new Date(night.date);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 1);
+    
+    const startYMD = night.date.replace(/-/g, '');
+    const endYMD = end.toISOString().split('T')[0].replace(/-/g, '');
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+    const icsLines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Spieleabend Tracker//DE',
+      'BEGIN:VEVENT',
+      `UID:spieleabend-${night.id}@spieleabend.ch`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${startYMD}`,
+      `DTEND;VALUE=DATE:${endYMD}`,
+      'SUMMARY:Spieleabend 🎲',
+      'DESCRIPTION:Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!',
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ];
+
+    const icsContent = icsLines.join('\r\n');
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `spieleabend-${night.date}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }
