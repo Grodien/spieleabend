@@ -1,6 +1,8 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { PlayerService } from '../../core/services/player.service';
 import { GameService } from '../../core/services/game.service';
 import { GameNightService } from '../../core/services/game-night.service';
@@ -22,11 +24,21 @@ interface PlayerStats {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, DecimalPipe, DatePipe],
+  imports: [CommonModule, MatIconModule, DecimalPipe, DatePipe, MatFormFieldModule, MatSelectModule],
   template: `
     <div class="page-container">
-      <div class="page-header">
+      <div class="page-header dashboard-header">
         <h1>Dashboard</h1>
+        
+        <mat-form-field appearance="outline" class="year-filter-field">
+          <mat-label>Jahr filtern</mat-label>
+          <mat-select [value]="selectedYear()" (selectionChange)="selectedYear.set($event.value)">
+            <mat-option value="all">Alle Jahre</mat-option>
+            @for (year of availableYears(); track year) {
+              <mat-option [value]="year">{{ year }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
       </div>
 
       <!-- KPI Cards -->
@@ -219,6 +231,23 @@ interface PlayerStats {
     </div>
   `,
   styles: `
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+
+      h1 {
+        margin-bottom: 0;
+      }
+    }
+
+    .year-filter-field {
+      width: 160px;
+      margin-bottom: -16px;
+    }
+
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -578,6 +607,17 @@ interface PlayerStats {
     }
 
     @media (max-width: 768px) {
+      .dashboard-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+
+        .year-filter-field {
+          width: 100%;
+          margin-bottom: 0;
+        }
+      }
+
       .kpi-grid {
         grid-template-columns: 1fr 1fr;
       }
@@ -627,18 +667,45 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach((s) => s.unsubscribe());
   }
 
+  // Filter state
+  selectedYear = signal<string>('all');
+
+  availableYears = computed(() => {
+    const years = new Set<string>();
+    this.gameNights().forEach((night) => {
+      if (night.date) {
+        const year = new Date(night.date).getFullYear().toString();
+        years.add(year);
+      }
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  });
+
+  filteredGameNights = computed(() => {
+    const year = this.selectedYear();
+    const nights = this.gameNights();
+    if (year === 'all') return nights;
+    return nights.filter(
+      (n) => n.date && new Date(n.date).getFullYear().toString() === year
+    );
+  });
+
   // Computed stats
-  totalNights = computed(() => this.gameNights().length);
+  totalNights = computed(() => this.filteredGameNights().length);
 
   totalGamesPlayed = computed(() => {
     let count = 0;
-    this.allPlayedGames().forEach((games) => (count += games.length));
+    this.filteredGameNights().forEach((night) => {
+      const games = this.allPlayedGames().get(night.id) || [];
+      count += games.length;
+    });
     return count;
   });
 
   totalSpent = computed(() => {
     let total = 0;
-    this.allPlayedGames().forEach((games) => {
+    this.filteredGameNights().forEach((night) => {
+      const games = this.allPlayedGames().get(night.id) || [];
       games.forEach((pg) => {
         Object.values(pg.costs).forEach((cost) => {
           if (cost > 0) total += cost;
@@ -663,7 +730,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
     });
 
-    this.gameNights().forEach((night) => {
+    this.filteredGameNights().forEach((night) => {
       const nightPlayers = new Set(night.playerIds);
       nightPlayers.forEach((pid) => {
         const s = stats.get(pid);
@@ -719,7 +786,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   gameCounts = computed(() => {
     const counts = new Map<string, number>();
-    this.allPlayedGames().forEach((games) => {
+    this.filteredGameNights().forEach((night) => {
+      const games = this.allPlayedGames().get(night.id) || [];
       games.forEach((pg) => {
         counts.set(pg.gameName, (counts.get(pg.gameName) || 0) + 1);
       });
@@ -735,7 +803,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   });
 
   avgPlayersPerNight = computed(() => {
-    const nights = this.gameNights();
+    const nights = this.filteredGameNights();
     if (nights.length === 0) return 0;
     const totalPlayers = nights.reduce((sum, n) => sum + n.playerIds.length, 0);
     return totalPlayers / nights.length;
@@ -766,7 +834,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   lastGameNight = computed(() => {
-    const nights = this.gameNights();
+    const nights = this.filteredGameNights();
     if (nights.length === 0) return null;
     return [...nights].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   });
