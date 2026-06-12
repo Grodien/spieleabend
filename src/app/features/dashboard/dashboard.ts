@@ -5,7 +5,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { PlayerService } from '../../core/services/player.service';
 import { GameService } from '../../core/services/game.service';
 import { GameNightService } from '../../core/services/game-night.service';
@@ -35,8 +34,7 @@ interface PlayerStats {
     DatePipe, 
     MatFormFieldModule, 
     MatSelectModule, 
-    MatButtonModule,
-    MatSnackBarModule
+    MatButtonModule
   ],
   template: `
     <div class="page-container">
@@ -777,7 +775,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private playerService = inject(PlayerService);
   private gameService = inject(GameService);
   private gameNightService = inject(GameNightService);
-  private snackBar = inject(MatSnackBar);
 
   players = signal<Player[]>([]);
   gameNights = signal<GameNight[]>([]);
@@ -1072,8 +1069,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'BEGIN:VEVENT',
       `UID:spieleabend-${night.id}`,
       `DTSTAMP:${stamp}`,
-      `DTSTART:${startYMD}T190000`,
-      `DTEND:${startYMD}T233000`,
+      `DTSTART:${startYMD}T130000`,
+      `DTEND:${startYMD}T230000`,
       'SUMMARY:Spieleabend',
       'DESCRIPTION:Gemeinsamer Spieleabend',
       'STATUS:CONFIRMED',
@@ -1096,37 +1093,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-
-    // Detect if iOS (iPhone/iPad/iPod) to show guide toast
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-    if (isIOS) {
-      this.snackBar.open(
-        'Kalendereintrag geladen! Tippe in Safari auf den Download-Pfeil (oben/unten) und wähle die .ics-Datei aus, um sie in den Kalender einzutragen.',
-        'Schließen',
-        { duration: 8000 }
-      );
-    }
   }
 
   getGoogleCalendarUrl(night: GameNight): string {
     const startYMD = night.date.replace(/-/g, '');
-    const start = new Date(night.date);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 1);
-    const endYMD = end.toISOString().split('T')[0].replace(/-/g, '');
-
     const title = encodeURIComponent('Spieleabend 🎲');
     const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
     
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startYMD}/${endYMD}&details=${details}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startYMD}T130000/${startYMD}T230000&details=${details}`;
   }
 
   getOutlookCalendarUrl(night: GameNight): string {
     const title = encodeURIComponent('Spieleabend 🎲');
     const details = encodeURIComponent('Gemeinsamer Spieleabend. Vergiss nicht deine Scores einzutragen!');
     
-    return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${night.date}&enddt=${night.date}&allday=true&body=${details}`;
+    return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${night.date}T13:00:00&enddt=${night.date}T23:00:00&allday=false&body=${details}`;
   }
 }
