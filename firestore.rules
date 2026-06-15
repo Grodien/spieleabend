@@ -21,5 +21,10 @@ service cloud.firestore {
     match /gameNights/{nightId} {
       allow read, write: if true;
     }
+
+    // ScoreboardSessions collection
+    match /scoreboardSessions/{sessionId} {
+      allow read, write: if true;
+    }
   }
 }

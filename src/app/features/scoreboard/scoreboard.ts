@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, effect, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -9,10 +9,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Subscription } from 'rxjs';
 import { GameNightCacheService } from '../../core/services/game-night-cache.service';
 import { GameNightService } from '../../core/services/game-night.service';
 import { GameService } from '../../core/services/game.service';
 import { CostCalculatorService } from '../../core/services/cost-calculator.service';
+import { ScoreboardService } from '../../core/services/scoreboard.service';
 import { Game } from '../../core/models/game.model';
 import { PlayedGame } from '../../core/models/game-night.model';
 
@@ -612,13 +614,16 @@ import { PlayedGame } from '../../core/models/game-night.model';
     }
   `,
 })
-export class ScoreboardComponent implements OnInit {
+export class ScoreboardComponent implements OnInit, OnDestroy {
   private cache = inject(GameNightCacheService);
   private gameNightService = inject(GameNightService);
   private gameService = inject(GameService);
   private costCalculator = inject(CostCalculatorService);
+  private scoreboardService = inject(ScoreboardService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
+
+  private sessionSubscription?: Subscription;
 
   // Signals for state
   latestGameNight = computed(() => this.cache.gameNights()[0] || null);
@@ -642,6 +647,9 @@ export class ScoreboardComponent implements OnInit {
             this.isPlayerSelected[pid] = true;
           }
         });
+
+        // Start listening to the Firestore session for this game night
+        this.setupSessionSubscription(latest.id);
       }
     });
   }
@@ -651,6 +659,56 @@ export class ScoreboardComponent implements OnInit {
 
     this.gameService.getAll().subscribe((games) => {
       this.games.set(games);
+      
+      // Resolve dummy selectedGame object once games list is loaded
+      if (this.selectedGameId && typeof this.selectedGame !== 'string' && this.selectedGame.id === this.selectedGameId) {
+        const found = games.find(g => g.id === this.selectedGameId);
+        if (found) {
+          this.selectedGame = found;
+        }
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.sessionSubscription?.unsubscribe();
+  }
+
+  private setupSessionSubscription(gameNightId: string) {
+    this.sessionSubscription?.unsubscribe();
+
+    this.sessionSubscription = this.scoreboardService.getSession(gameNightId).subscribe((session) => {
+      if (session) {
+        // Only update local signals if they are different from Firestore data to avoid loops/cursor resets
+        if (JSON.stringify(this.rounds()) !== JSON.stringify(session.rounds)) {
+          this.rounds.set(session.rounds);
+        }
+        if (JSON.stringify(this.participatingPlayerIds()) !== JSON.stringify(session.participatingPlayerIds)) {
+          this.participatingPlayerIds.set(session.participatingPlayerIds);
+        }
+        if (this.selectedGameId !== session.gameId) {
+          this.selectedGameId = session.gameId;
+          const foundGame = this.games().find(g => g.id === session.gameId);
+          if (foundGame) {
+            this.selectedGame = foundGame;
+          } else {
+            this.selectedGame = {
+              id: session.gameId,
+              name: session.gameName,
+              scoringSystem: session.scoringSystem,
+              isTeamGame: session.isTeamGame
+            } as Game;
+          }
+        }
+        if (this.activeGame() !== session.activeGame) {
+          this.activeGame.set(session.activeGame);
+        }
+      } else {
+        // If there's no session in the database, clear active game locally
+        if (this.activeGame()) {
+          this.resetState();
+        }
+      }
     });
   }
 
@@ -697,16 +755,36 @@ export class ScoreboardComponent implements OnInit {
     return activeCount > 0;
   }
 
-  startGame() {
+  async startGame() {
+    const gn = this.latestGameNight();
     const game = this.selectedGame;
-    if (!game || typeof game === 'string') return;
+    if (!gn || !game || typeof game === 'string') return;
 
-    const selectedPids = this.latestGameNight()?.playerIds.filter((id) => this.isPlayerSelected[id]) ?? [];
+    const selectedPids = gn.playerIds.filter((id) => this.isPlayerSelected[id]) ?? [];
     if (selectedPids.length === 0) return;
 
+    const initialRounds = [{}];
+
+    // Set local state first for immediate UI feedback
     this.participatingPlayerIds.set(selectedPids);
-    this.rounds.set([{}]); // Start with one empty round
+    this.rounds.set(initialRounds);
     this.activeGame.set(true);
+
+    try {
+      await this.scoreboardService.saveSession(gn.id, {
+        gameNightId: gn.id,
+        gameId: game.id,
+        gameName: game.name,
+        scoringSystem: game.scoringSystem,
+        isTeamGame: game.isTeamGame,
+        participatingPlayerIds: selectedPids,
+        rounds: initialRounds,
+        activeGame: true,
+      });
+    } catch (err) {
+      console.error('Error starting scoreboard session:', err);
+      this.snackBar.open('Fehler beim Starten der Session.', 'OK', { duration: 3000 });
+    }
   }
 
   // Active game helpers
@@ -774,25 +852,57 @@ export class ScoreboardComponent implements OnInit {
     return leaders;
   });
 
-  // Table actions
+  // Table actions & database synchronization
+  private async updateDatabaseSession() {
+    const gn = this.latestGameNight();
+    const game = this.selectedGame;
+    if (!gn || !game || typeof game === 'string') return;
+
+    try {
+      await this.scoreboardService.saveSession(gn.id, {
+        gameNightId: gn.id,
+        gameId: game.id,
+        gameName: game.name,
+        scoringSystem: game.scoringSystem,
+        isTeamGame: game.isTeamGame,
+        participatingPlayerIds: this.participatingPlayerIds(),
+        rounds: this.rounds(),
+        activeGame: this.activeGame(),
+      });
+    } catch (err) {
+      console.error('Error updating scoreboard session:', err);
+    }
+  }
+
   addRound() {
     const current = this.rounds();
     this.rounds.set([...current, {}]);
+    this.updateDatabaseSession();
   }
 
   deleteLastRound() {
     const current = this.rounds();
     if (current.length > 1) {
       this.rounds.set(current.slice(0, -1));
+      this.updateDatabaseSession();
     }
   }
 
   onScoreChange() {
     this.rounds.set([...this.rounds()]);
+    this.updateDatabaseSession();
   }
 
-  cancelGame() {
+  async cancelGame() {
     if (confirm('Möchtest du das aktuelle Spiel wirklich abbrechen? Die eingegebenen Runden gehen verloren.')) {
+      const gn = this.latestGameNight();
+      if (gn) {
+        try {
+          await this.scoreboardService.deleteSession(gn.id);
+        } catch (err) {
+          console.error('Error deleting scoreboard session:', err);
+        }
+      }
       this.resetState();
     }
   }
@@ -803,6 +913,7 @@ export class ScoreboardComponent implements OnInit {
     this.selectedGame = '';
     this.selectedGameId = '';
     this.searchQuery.set('');
+    this.participatingPlayerIds.set([]);
   }
 
   async saveGame() {
@@ -829,6 +940,9 @@ export class ScoreboardComponent implements OnInit {
         scores: totals,
         costs: costs,
       });
+
+      // Delete the temporary session since the game is finished
+      await this.scoreboardService.deleteSession(gn.id);
 
       this.snackBar.open(`${game.name} wurde erfolgreich erfasst!`, 'OK', { duration: 3000 });
       this.resetState();
