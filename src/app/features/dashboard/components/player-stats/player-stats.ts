@@ -130,7 +130,11 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
   `,
   styles: `
     .section {
-      margin-bottom: 0px;
+      margin-bottom: 24px;
+    }
+
+    .stats-cards-grid .section {
+      margin-bottom: 0;
     }
 
     .section-title {
