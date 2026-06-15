@@ -1,11 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
 import { Game } from '../../core/models/game.model';
 
@@ -20,21 +20,27 @@ interface DialogData {
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatButtonModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, MatIconModule,
+    MatFormFieldModule, MatInputModule, MatAutocompleteModule, MatIconModule,
   ],
   template: `
     <h2 mat-dialog-title>Spiel hinzufügen</h2>
     <mat-dialog-content>
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Spiel auswählen</mat-label>
-        <mat-select [(ngModel)]="selectedGameId" (selectionChange)="onGameChange()">
-          @for (game of data.games; track game.id) {
-            <mat-option [value]="game.id">
+        <mat-label>Spiel suchen oder auswählen</mat-label>
+        <input type="text"
+               placeholder="Spiel suchen..."
+               matInput
+               [(ngModel)]="selectedGame"
+               (ngModelChange)="onSearchChange($event)"
+               [matAutocomplete]="auto" />
+        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayGameName">
+          @for (game of filteredGames(); track game.id) {
+            <mat-option [value]="game">
               {{ game.name }}
               @if (game.isTeamGame) { (Team) }
             </mat-option>
           }
-        </mat-select>
+        </mat-autocomplete>
       </mat-form-field>
 
       @if (selectedGameId) {
@@ -83,8 +89,34 @@ export class AddGameDialogComponent {
   data = inject<DialogData>(MAT_DIALOG_DATA);
   private dialogRef = inject(MatDialogRef<AddGameDialogComponent>);
 
+  selectedGame: string | Game = '';
   selectedGameId = '';
   scores: Record<string, number> = {};
+  searchQuery = signal('');
+
+  filteredGames = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    if (!query) return this.data.games;
+    return this.data.games.filter((game) =>
+      game.name.toLowerCase().includes(query)
+    );
+  });
+
+  onSearchChange(value: string | Game) {
+    const query = typeof value === 'string' ? value : (value?.name || '');
+    this.searchQuery.set(query);
+
+    if (typeof value === 'string') {
+      this.selectedGameId = '';
+    } else if (value && value.id) {
+      this.selectedGameId = value.id;
+      this.onGameChange();
+    }
+  }
+
+  displayGameName(game: Game | null): string {
+    return game ? game.name : '';
+  }
 
   onGameChange() {
     // Reset scores when game changes
@@ -114,3 +146,4 @@ export class AddGameDialogComponent {
     });
   }
 }
+
