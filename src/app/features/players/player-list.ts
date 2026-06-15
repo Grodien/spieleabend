@@ -4,14 +4,16 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { PlayerService } from '../../core/services/player.service';
+import { GameNightCacheService } from '../../core/services/game-night-cache.service';
 import { Player } from '../../core/models/player.model';
 import { PlayerDialogComponent } from './player-dialog';
 
 @Component({
   selector: 'app-player-list',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, MatSnackBarModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, MatSnackBarModule, MatTooltipModule],
   template: `
     <div class="page-container">
       <div class="page-header">
@@ -36,7 +38,11 @@ import { PlayerDialogComponent } from './player-dialog';
                 <div class="player-avatar">{{ player.name.charAt(0).toUpperCase() }}</div>
                 <div class="player-name">{{ player.name }}</div>
               </div>
-              <button mat-icon-button (click)="deletePlayer(player)" class="delete-btn">
+              <button mat-icon-button
+                      (click)="deletePlayer(player)"
+                      class="delete-btn"
+                      [disabled]="hasPlayedAnyGame(player.id)"
+                      [matTooltip]="hasPlayedAnyGame(player.id) ? 'Spieler hat bereits an Spielen teilgenommen und kann nicht gelöscht werden' : 'Spieler löschen'">
                 <mat-icon>delete_outline</mat-icon>
               </button>
             </div>
@@ -89,15 +95,24 @@ import { PlayerDialogComponent } from './player-dialog';
 })
 export class PlayerListComponent implements OnInit {
   private playerService = inject(PlayerService);
+  private cache = inject(GameNightCacheService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
   players = signal<Player[]>([]);
 
   ngOnInit() {
+    this.cache.initialize();
     this.playerService.getAll().subscribe((players) => {
       this.players.set(players);
     });
+  }
+
+  hasPlayedAnyGame(playerId: string): boolean {
+    return this.cache.gameNights().some(night => 
+      night.playerIds.includes(playerId) ||
+      night.playedGames.some(pg => pg.scores && pg.scores[playerId] !== undefined)
+    );
   }
 
   openDialog() {
@@ -116,8 +131,14 @@ export class PlayerListComponent implements OnInit {
   }
 
   deletePlayer(player: Player) {
-    this.playerService.delete(player.id).then(() => {
-      this.snackBar.open(`${player.name} gelöscht`, 'OK', { duration: 2000 });
-    });
+    if (this.hasPlayedAnyGame(player.id)) {
+      this.snackBar.open('Spieler mit bestehender Spielhistorie kann nicht gelöscht werden.', 'OK', { duration: 3000 });
+      return;
+    }
+    if (confirm(`Möchtest du den Spieler "${player.name}" wirklich löschen?`)) {
+      this.playerService.delete(player.id).then(() => {
+        this.snackBar.open(`${player.name} gelöscht`, 'OK', { duration: 2000 });
+      });
+    }
   }
 }
