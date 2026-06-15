@@ -41,12 +41,12 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
           <div class="extra-stat-label">Ø Spieler pro Abend</div>
         </div>
         <div class="extra-stat">
-          <div class="extra-stat-value">{{ stats.mostExpensivePlayer() }}</div>
-          <div class="extra-stat-label">Teuerster Spieler</div>
+          <div class="extra-stat-value">{{ stats.bestWinRate() }}</div>
+          <div class="extra-stat-label">Beste Winrate (≥5 Spiele)</div>
         </div>
         <div class="extra-stat">
-          <div class="extra-stat-value">{{ stats.luckiestPlayer() }}</div>
-          <div class="extra-stat-label">Günstigster Spieler</div>
+          <div class="extra-stat-value">{{ stats.pechvogel() }}</div>
+          <div class="extra-stat-label">Pechvogel (am häufigsten Letzter)</div>
         </div>
       </div>
     </div>

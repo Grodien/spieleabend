@@ -169,17 +169,61 @@ export class DashboardStatsService {
     return nights.reduce((sum, n) => sum + n.playerIds.length, 0) / nights.length;
   });
 
-  mostExpensivePlayer = computed(() => {
+  bestWinRate = computed(() => {
     const stats = this.playerStats();
-    if (stats.length === 0) return '-';
-    const max = stats.reduce((a, b) => (a.totalCost > b.totalCost ? a : b));
-    return max.totalCost > 0 ? max.name : '-';
+    // Filter to players who played at least 5 games to avoid sample size bias
+    const eligible = stats.filter((s) => s.gamesPlayed >= 5);
+    if (eligible.length === 0) {
+      const active = stats.filter((s) => s.gamesPlayed > 0);
+      if (active.length === 0) return '-';
+      const max = active.reduce((a, b) => {
+        const rateA = a.wins / a.gamesPlayed;
+        const rateB = b.wins / b.gamesPlayed;
+        return rateA > rateB ? a : b;
+      });
+      const percent = Math.round((max.wins / max.gamesPlayed) * 100);
+      return `${max.name} (${percent}%)`;
+    }
+    
+    const max = eligible.reduce((a, b) => {
+      const rateA = a.wins / a.gamesPlayed;
+      const rateB = b.wins / b.gamesPlayed;
+      return rateA > rateB ? a : b;
+    });
+    const percent = Math.round((max.wins / max.gamesPlayed) * 100);
+    return `${max.name} (${percent}%)`;
   });
 
-  luckiestPlayer = computed(() => {
-    const stats = this.playerStats().filter((s) => s.nightsPlayed > 0);
-    if (stats.length === 0) return '-';
-    return stats.reduce((a, b) => (a.totalCost < b.totalCost ? a : b)).name;
+  pechvogel = computed(() => {
+    const counts = new Map<string, number>();
+    this.players().forEach((p) => counts.set(p.id, 0));
+
+    this.pastFilteredGameNights().forEach((night) => {
+      (night.playedGames ?? []).forEach((game) => {
+        const costs = Object.entries(game.costs);
+        if (costs.length === 0) return;
+        const maxCost = Math.max(...costs.map(([, c]) => c));
+        if (maxCost <= 0) return; // Ignore games where everyone paid 0
+
+        costs.forEach(([pid, cost]) => {
+          if (cost === maxCost) {
+            counts.set(pid, (counts.get(pid) || 0) + 1);
+          }
+        });
+      });
+    });
+
+    const entries = Array.from(counts.entries())
+      .map(([pid, count]) => ({
+        name: this.players().find((p) => p.id === pid)?.name || '?',
+        count,
+      }))
+      .filter((e) => e.count > 0);
+
+    if (entries.length === 0) return '-';
+    
+    const max = entries.reduce((a, b) => (a.count > b.count ? a : b));
+    return `${max.name} (${max.count}×)`;
   });
 
   // ── Last / Next game night ────────────────────────────────────────────────
