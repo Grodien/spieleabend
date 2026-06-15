@@ -1,16 +1,23 @@
 import { Component, inject } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
 import { DashboardStatsService } from '../../services/dashboard-stats.service';
 
 @Component({
   selector: 'app-last-game-night-card',
   standalone: true,
-  imports: [DecimalPipe, DatePipe],
+  imports: [DecimalPipe, DatePipe, RouterLink, MatIconModule],
   template: `
     @if (stats.lastGameNight()) {
-      <div class="section glass-card last-night-section" style="animation: slideInUp 0.5s ease-out 0.05s backwards">
+      <div class="section glass-card last-night-section clickable-card"
+           [routerLink]="['/game-nights', stats.lastGameNight()!.id]"
+           style="animation: slideInUp 0.5s ease-out 0.05s backwards">
         <div class="last-night-header">
-          <h3 class="section-title" style="margin-bottom: 0;">🌙 Letzter Spieleabend</h3>
+          <h3 class="section-title" style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+            <span>🌙 Letzter Spieleabend</span>
+            <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+          </h3>
           <span class="last-night-date-badge">{{ stats.lastGameNight()!.date | date:'dd.MM.yyyy' }}</span>
         </div>
 
@@ -187,6 +194,30 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
       font-size: 13px;
       font-style: italic;
       padding: 8px 0;
+    }
+
+    .clickable-card {
+      cursor: pointer;
+      transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+
+      &:hover {
+        transform: translateY(-2px);
+        border-color: var(--color-accent);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        
+        .arrow-icon {
+          transform: translateX(4px);
+          color: var(--color-accent-light);
+        }
+      }
+    }
+
+    .arrow-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      color: var(--color-text-secondary);
+      transition: transform var(--transition-fast), color var(--transition-fast);
     }
 
     @media (max-width: 768px) {
