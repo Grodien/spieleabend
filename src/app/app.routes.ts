@@ -12,6 +12,11 @@ export const routes: Routes = [
       import('./features/players/player-list').then((m) => m.PlayerListComponent),
   },
   {
+    path: 'scoreboard',
+    loadComponent: () =>
+      import('./features/scoreboard/scoreboard').then((m) => m.ScoreboardComponent),
+  },
+  {
     path: 'games',
     loadComponent: () => import('./features/games/game-list').then((m) => m.GameListComponent),
   },

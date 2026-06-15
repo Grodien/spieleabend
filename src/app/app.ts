@@ -27,6 +27,7 @@ export class App implements OnInit {
   navItems = [
     { path: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
     { path: '/game-nights', icon: 'casino', label: 'Spieleabende' },
+    { path: '/scoreboard', icon: 'scoreboard', label: 'Scoreboard' },
     { path: '/players', icon: 'group', label: 'Spieler' },
     { path: '/games', icon: 'sports_esports', label: 'Spiele' },
   ];
