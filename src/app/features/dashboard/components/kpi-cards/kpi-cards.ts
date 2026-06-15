@@ -9,7 +9,7 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
   template: `
     <div class="kpi-grid animate-slide-in">
       <div class="stat-card">
-        <div class="stat-icon">🌙</div>
+        <div class="stat-icon">🎯</div>
         <div class="stat-value">{{ stats.totalNights() }}</div>
         <div class="stat-label">Spieleabende</div>
       </div>
@@ -26,9 +26,10 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
       <div class="stat-card">
         <div class="stat-icon">💰</div>
         <div class="stat-value">{{ stats.totalSpent() | number:'1.0-0' }}</div>
-        <div class="stat-label">Total CHF umverteilt</div>
+        <div class="stat-label">Total Pot</div>
       </div>
     </div>
+
   `,
   styles: `
     .kpi-grid {
