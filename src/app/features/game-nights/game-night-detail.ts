@@ -127,16 +127,20 @@ import { EditPlayersDialogComponent } from './edit-players-dialog';
                     <span class="score-col cost-col">Kosten</span>
                   </div>
                   @for (entry of getSortedScores(pg); track entry.playerId) {
-                    <div class="score-row" [class.winner-row]="entry.rank === 1">
+                    <div class="score-row" [class.winner-row]="entry.rank === 1" [class.dnp-row]="entry.rank === -1">
                       <span class="score-col rank-col">
                         @if (entry.rank === 1) {
                           🏆
+                        } @else if (entry.rank === -1) {
+                          -
                         } @else {
                           {{ entry.rank }}.
                         }
                       </span>
                       <span class="score-col player-col">{{ getPlayerName(entry.playerId) }}</span>
-                      <span class="score-col score-val-col">{{ entry.score }}</span>
+                      <span class="score-col score-val-col">
+                        {{ entry.score !== null ? entry.score : '-' }}
+                      </span>
                       <span class="score-col cost-col" [class.cost-zero]="entry.cost === 0" [class.cost-positive]="entry.cost > 0">
                         {{ entry.cost | number:'1.2-2' }} CHF
                       </span>
@@ -324,6 +328,19 @@ import { EditPlayersDialogComponent } from './edit-players-dialog';
       background: rgba(245, 158, 11, 0.05);
     }
 
+    .dnp-row {
+      opacity: 0.45;
+      background: rgba(255, 255, 255, 0.01);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.01) !important;
+      }
+
+      .cost-col {
+        color: var(--color-text-muted) !important;
+      }
+    }
+
     .score-col {
       display: flex;
       align-items: center;
@@ -477,18 +494,20 @@ export class GameNightDetailComponent implements OnInit {
     return this.playerMap().get(playerId) || '?';
   }
 
-  getSortedScores(pg: PlayedGame): Array<{ playerId: string; score: number; cost: number; rank: number }> {
+  getSortedScores(pg: PlayedGame): Array<{ playerId: string; score: number | null; cost: number; rank: number }> {
     const entries = Object.entries(pg.scores).map(([playerId, score]) => ({
       playerId,
-      score: score as number,
+      score: score as number | null,
       cost: (pg.costs[playerId] || 0) as number,
       rank: 0,
     }));
 
     // Sort by score according to scoring system
-    entries.sort((a, b) =>
-      pg.scoringSystem === 'highest' ? b.score - a.score : a.score - b.score
-    );
+    entries.sort((a, b) => {
+      const scoreA = a.score ?? 0;
+      const scoreB = b.score ?? 0;
+      return pg.scoringSystem === 'highest' ? scoreB - scoreA : scoreA - scoreB;
+    });
 
     // Assign ranks
     let currentRank = 1;
@@ -498,6 +517,19 @@ export class GameNightDetailComponent implements OnInit {
       }
       entries[i].rank = currentRank;
     }
+
+    // Add DNP players at the end
+    const activePlayerIds = this.gameNight()?.playerIds ?? [];
+    activePlayerIds.forEach((playerId) => {
+      if (!(playerId in pg.scores)) {
+        entries.push({
+          playerId,
+          score: null,
+          cost: 0,
+          rank: -1,
+        });
+      }
+    });
 
     return entries;
   }
