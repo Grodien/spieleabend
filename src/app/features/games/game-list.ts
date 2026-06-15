@@ -102,7 +102,11 @@ import { GameDialogComponent } from './game-dialog';
                         Noch nie gespielt
                       </span>
                     }
-                    <button mat-icon-button (click)="deleteGame(game); $event.stopPropagation()" class="delete-btn" matTooltip="Spiel löschen">
+                    <button mat-icon-button
+                            (click)="deleteGame(game); $event.stopPropagation()"
+                            class="delete-btn"
+                            [disabled]="getPlayCount(game.id) > 0"
+                            [matTooltip]="getPlayCount(game.id) > 0 ? 'Gespielte Spiele können nicht gelöscht werden' : 'Spiel löschen'">
                       <mat-icon>delete_outline</mat-icon>
                     </button>
                   </div>
@@ -670,8 +674,14 @@ export class GameListComponent implements OnInit, OnDestroy {
   }
 
   deleteGame(game: Game) {
-    this.gameService.delete(game.id).then(() => {
-      this.snackBar.open(`${game.name} gelöscht`, 'OK', { duration: 2000 });
-    });
+    if (this.getPlayCount(game.id) > 0) {
+      this.snackBar.open('Gespielte Spiele können nicht gelöscht werden.', 'OK', { duration: 3000 });
+      return;
+    }
+    if (confirm(`Möchtest du das Spiel "${game.name}" wirklich löschen?`)) {
+      this.gameService.delete(game.id).then(() => {
+        this.snackBar.open(`${game.name} gelöscht`, 'OK', { duration: 2000 });
+      });
+    }
   }
 }
