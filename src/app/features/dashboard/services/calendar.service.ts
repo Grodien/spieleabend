@@ -4,6 +4,37 @@ import { GameNight } from '../../../core/models/game-night.model';
 @Injectable({ providedIn: 'root' })
 export class CalendarService {
   private parseDate(dateStr: string): { year: number; month: number; day: number } | null {
+    const yyyymmddMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})(T.*)?$/);
+    if (yyyymmddMatch) {
+      return {
+        year: parseInt(yyyymmddMatch[1], 10),
+        month: parseInt(yyyymmddMatch[2], 10) - 1,
+        day: parseInt(yyyymmddMatch[3], 10),
+      };
+    }
+
+    const parsed = Date.parse(dateStr);
+    if (!isNaN(parsed)) {
+      const dateObj = new Date(parsed);
+      return {
+        year: dateObj.getFullYear(),
+        month: dateObj.getMonth(),
+        day: dateObj.getDate(),
+      };
+    }
+
+    const num = Number(dateStr);
+    if (!isNaN(num)) {
+      const dateObj = new Date(num);
+      if (!isNaN(dateObj.getTime())) {
+        return {
+          year: dateObj.getFullYear(),
+          month: dateObj.getMonth(),
+          day: dateObj.getDate(),
+        };
+      }
+    }
+
     const parts = dateStr.split('-');
     if (parts.length !== 3) return null;
     return {

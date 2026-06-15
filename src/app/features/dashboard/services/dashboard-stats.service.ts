@@ -200,9 +200,29 @@ export class DashboardStatsService {
 
     let formattedDate = maxDate;
     if (maxDate) {
-      const parts = maxDate.split('-');
-      if (parts.length === 3) {
-        formattedDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+      const yyyymmddMatch = maxDate.match(/^(\d{4})-(\d{2})-(\d{2})(T.*)?$/);
+      if (yyyymmddMatch) {
+        formattedDate = `${yyyymmddMatch[3]}.${yyyymmddMatch[2]}.${yyyymmddMatch[1]}`;
+      } else {
+        const parsed = Date.parse(maxDate);
+        if (!isNaN(parsed)) {
+          const dateObj = new Date(parsed);
+          const d = String(dateObj.getDate()).padStart(2, '0');
+          const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const y = dateObj.getFullYear();
+          formattedDate = `${d}.${m}.${y}`;
+        } else {
+          const num = Number(maxDate);
+          if (!isNaN(num)) {
+            const dateObj = new Date(num);
+            if (!isNaN(dateObj.getTime())) {
+              const d = String(dateObj.getDate()).padStart(2, '0');
+              const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+              const y = dateObj.getFullYear();
+              formattedDate = `${d}.${m}.${y}`;
+            }
+          }
+        }
       }
     }
 
