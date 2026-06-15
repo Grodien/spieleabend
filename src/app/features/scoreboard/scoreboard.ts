@@ -130,8 +130,8 @@ import { PlayedGame } from '../../core/models/game-night.model';
             </div>
           </div>
 
-          <!-- Score Table -->
-          <div class="table-container">
+          <!-- Score Table (Desktop only) -->
+          <div class="table-container desktop-only">
             <table class="scoreboard-table">
               <thead>
                 <tr>
@@ -171,6 +171,52 @@ import { PlayedGame } from '../../core/models/game-night.model';
             </table>
           </div>
 
+          <!-- Mobile Cards Layout (Mobile only) -->
+          <div class="mobile-rounds-container mobile-only">
+            @for (round of rounds(); track $index; let r = $index) {
+              <div class="glass-card mobile-round-card">
+                <div class="mobile-round-header">
+                  <h3>Runde {{ r + 1 }}</h3>
+                </div>
+                <div class="mobile-round-players">
+                  @for (pid of participatingPlayerIds(); track pid) {
+                    <div class="mobile-player-row">
+                      <span class="mobile-player-name" [class.mobile-leader-text]="currentLeaderIds().has(pid)">
+                        @if (currentLeaderIds().has(pid)) {
+                          <span class="leader-crown">👑</span>
+                        }
+                        {{ getPlayerName(pid) }}
+                      </span>
+                      <input type="number"
+                             class="mobile-round-input"
+                             [(ngModel)]="round[pid]"
+                             (ngModelChange)="onScoreChange()"
+                             placeholder="0"
+                             inputmode="numeric" />
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Sticky Mobile Totals Bar (Mobile only) -->
+          <div class="mobile-totals-sticky mobile-only">
+            <div class="mobile-totals-scroll">
+              @for (pid of participatingPlayerIds(); track pid) {
+                <div class="mobile-total-chip" [class.mobile-leader-chip]="currentLeaderIds().has(pid)">
+                  <span class="chip-player-name">
+                    @if (currentLeaderIds().has(pid)) {
+                      👑
+                    }
+                    {{ getPlayerName(pid) }}
+                  </span>
+                  <span class="chip-player-score">{{ playerTotals()[pid] }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
           <!-- Bottom Action Buttons -->
           <div class="actions-row">
             <div class="actions-left">
@@ -201,6 +247,14 @@ import { PlayedGame } from '../../core/models/game-night.model';
   styles: `
     .full-width {
       width: 100%;
+    }
+
+    .desktop-only {
+      display: block;
+    }
+
+    .mobile-only {
+      display: none;
     }
 
     .setup-container {
@@ -394,6 +448,156 @@ import { PlayedGame } from '../../core/models/game-night.model';
     }
 
     @media (max-width: 768px) {
+      .desktop-only {
+        display: none;
+      }
+      .mobile-only {
+        display: block;
+      }
+      
+      .game-container {
+        padding-bottom: 110px; /* Space for the sticky bottom bar */
+      }
+
+      /* Mobile Round Cards */
+      .mobile-rounds-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .mobile-round-card {
+        padding: 16px;
+        border: 1px solid var(--color-border);
+      }
+
+      .mobile-round-header {
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 8px;
+      }
+
+      .mobile-round-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+      }
+
+      .mobile-round-players {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .mobile-player-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .mobile-player-name {
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .mobile-leader-text {
+        color: var(--color-accent-light);
+        font-weight: 600;
+      }
+
+      .mobile-round-input {
+        width: 90px;
+        height: 44px; /* Touch target optimized */
+        border: 1px solid var(--color-border);
+        background: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        padding: 8px;
+        border-radius: var(--radius-md);
+        text-align: center;
+        font-weight: 600;
+        font-size: 16px !important; /* Prevents auto-zoom on iOS */
+
+        &:focus {
+          outline: none;
+          border-color: var(--color-accent);
+          box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+        }
+      }
+
+      /* Sticky Totals Bar */
+      .mobile-totals-sticky {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(15, 23, 42, 0.85); /* Sleek dark semitransparent background */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid var(--color-border);
+        padding: 12px 16px;
+        z-index: 1000;
+        display: flex !important; /* Force flex display when visible */
+        justify-content: center;
+      }
+
+      .mobile-totals-scroll {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        width: 100%;
+        max-width: 600px;
+        padding-bottom: 4px; /* For scrollbar breathing room */
+        scrollbar-width: none; /* Hide default scrollbar */
+        &::-webkit-scrollbar {
+          display: none;
+        }
+      }
+
+      .mobile-total-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--color-border);
+        padding: 8px 14px;
+        border-radius: var(--radius-full);
+        flex-shrink: 0;
+      }
+
+      .mobile-leader-chip {
+        background: rgba(251, 191, 36, 0.1);
+        border-color: var(--color-accent-light);
+      }
+
+      .chip-player-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .mobile-leader-chip .chip-player-name {
+        color: var(--color-text-primary);
+        font-weight: 600;
+      }
+
+      .chip-player-score {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+      }
+
+      .mobile-leader-chip .chip-player-score {
+        color: var(--color-accent-light);
+      }
+
       .actions-row {
         flex-direction: column;
         align-items: stretch;
