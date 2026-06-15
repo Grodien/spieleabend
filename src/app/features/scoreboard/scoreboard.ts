@@ -150,6 +150,7 @@ import { PlayedGame } from '../../core/models/game-night.model';
                         <input type="number"
                                class="round-input"
                                [(ngModel)]="round[pid]"
+                               (ngModelChange)="onScoreChange()"
                                placeholder="0" />
                       </td>
                     }
@@ -580,6 +581,10 @@ export class ScoreboardComponent implements OnInit {
     if (current.length > 1) {
       this.rounds.set(current.slice(0, -1));
     }
+  }
+
+  onScoreChange() {
+    this.rounds.set([...this.rounds()]);
   }
 
   cancelGame() {
