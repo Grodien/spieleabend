@@ -97,6 +97,18 @@ export class GameNightService {
     return newId;
   }
 
+  async updatePlayedGame(
+    gameNightId: string,
+    playedGameId: string,
+    data: Partial<Omit<PlayedGame, 'id' | 'createdAt'>>,
+  ): Promise<void> {
+    const nightRef = doc(db, this.collectionName, gameNightId);
+    const snapshot = await getDoc(nightRef);
+    const existing: PlayedGame[] = (snapshot.data()?.['playedGames'] as PlayedGame[]) ?? [];
+    const updated = existing.map((g) => (g.id === playedGameId ? { ...g, ...data } : g));
+    await updateDoc(nightRef, { playedGames: updated });
+  }
+
   async deletePlayedGame(gameNightId: string, playedGameId: string): Promise<void> {
     const nightRef = doc(db, this.collectionName, gameNightId);
     const snapshot = await getDoc(nightRef);

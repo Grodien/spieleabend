@@ -107,10 +107,16 @@ import { EditPlayersDialogComponent } from './edit-players-dialog';
                       }
                     </div>
                   </div>
-                  <button mat-icon-button (click)="deletePlayedGame(pg)" class="delete-btn"
-                          matTooltip="Spiel entfernen">
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
+                  <div class="header-actions-group">
+                    <button mat-icon-button (click)="openEditGameDialog(pg)" class="edit-btn"
+                            matTooltip="Scores bearbeiten">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button (click)="deletePlayedGame(pg)" class="delete-btn"
+                            matTooltip="Spiel entfernen">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
                 </div>
 
                 <div class="score-table">
@@ -345,6 +351,22 @@ import { EditPlayersDialogComponent } from './edit-players-dialog';
       font-weight: 600;
     }
 
+    .header-actions-group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .edit-btn {
+      opacity: 0.5;
+      transition: opacity var(--transition-fast), color var(--transition-fast);
+
+      &:hover {
+        opacity: 1;
+        color: var(--color-accent);
+      }
+    }
+
     .delete-btn {
       opacity: 0.5;
       transition: opacity var(--transition-fast), color var(--transition-fast);
@@ -517,6 +539,45 @@ export class GameNightDetailComponent implements OnInit {
           })
           .then(() => {
             this.snackBar.open(`${game.name} hinzugefügt!`, 'OK', { duration: 2000 });
+          });
+      }
+    });
+  }
+
+  openEditGameDialog(pg: PlayedGame) {
+    const gn = this.gameNight();
+    if (!gn) return;
+
+    const dialogRef = this.dialog.open(AddGameDialogComponent, {
+      width: '100%',
+      maxWidth: '500px',
+      data: {
+        games: this.games(),
+        playerIds: gn.playerIds,
+        playerMap: this.playerMap(),
+        playedGame: pg,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result: { gameId: string; scores: Record<string, number> } | undefined) => {
+      if (result && gn) {
+        const game = this.games().find((g) => g.id === result.gameId);
+        if (!game) return;
+
+        const costs = this.costCalculator.calculateCosts(
+          result.scores,
+          game.scoringSystem,
+          game.isTeamGame,
+          gn.costPerGame,
+        );
+
+        this.gameNightService
+          .updatePlayedGame(gn.id, pg.id, {
+            scores: result.scores,
+            costs,
+          })
+          .then(() => {
+            this.snackBar.open(`${game.name} aktualisiert!`, 'OK', { duration: 2000 });
           });
       }
     });

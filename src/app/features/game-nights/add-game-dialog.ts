@@ -8,11 +8,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
 import { Game } from '../../core/models/game.model';
+import { PlayedGame } from '../../core/models/game-night.model';
 
 interface DialogData {
   games: Game[];
   playerIds: string[];
   playerMap: Map<string, string>;
+  playedGame?: PlayedGame;
 }
 
 @Component({
@@ -23,25 +25,32 @@ interface DialogData {
     MatFormFieldModule, MatInputModule, MatAutocompleteModule, MatIconModule,
   ],
   template: `
-    <h2 mat-dialog-title>Spiel hinzufügen</h2>
+    <h2 mat-dialog-title>{{ data.playedGame ? 'Spielergebnisse bearbeiten' : 'Spiel hinzufügen' }}</h2>
     <mat-dialog-content>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Spiel suchen oder auswählen</mat-label>
-        <input type="text"
-               placeholder="Spiel suchen..."
-               matInput
-               [(ngModel)]="selectedGame"
-               (ngModelChange)="onSearchChange($event)"
-               [matAutocomplete]="auto" />
-        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayGameName">
-          @for (game of filteredGames(); track game.id) {
-            <mat-option [value]="game">
-              {{ game.name }}
-              @if (game.isTeamGame) { (Team) }
-            </mat-option>
-          }
-        </mat-autocomplete>
-      </mat-form-field>
+      @if (data.playedGame) {
+        <div class="game-info-row">
+          <span class="game-info-label">Spiel:</span>
+          <span class="game-info-value">{{ data.playedGame.gameName }}</span>
+        </div>
+      } @else {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Spiel suchen oder auswählen</mat-label>
+          <input type="text"
+                 placeholder="Spiel suchen..."
+                 matInput
+                 [(ngModel)]="selectedGame"
+                 (ngModelChange)="onSearchChange($event)"
+                 [matAutocomplete]="auto" />
+          <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayGameName">
+            @for (game of filteredGames(); track game.id) {
+              <mat-option [value]="game">
+                {{ game.name }}
+                @if (game.isTeamGame) { (Team) }
+              </mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+      }
 
       @if (selectedGameId) {
         <div class="scores-section">
@@ -69,6 +78,28 @@ interface DialogData {
       width: 100%;
     }
 
+    .game-info-row {
+      display: flex;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      padding: 12px 16px;
+      background: var(--color-bg-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      align-items: center;
+    }
+
+    .game-info-label {
+      color: var(--color-text-secondary);
+    }
+
+    .game-info-value {
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+
     .scores-section {
       margin-top: 8px;
     }
@@ -93,6 +124,18 @@ export class AddGameDialogComponent {
   selectedGameId = '';
   scores: Record<string, number> = {};
   searchQuery = signal('');
+
+  constructor() {
+    const pg = this.data.playedGame;
+    if (pg) {
+      const game = this.data.games.find((g) => g.id === pg.gameId);
+      if (game) {
+        this.selectedGame = game;
+        this.selectedGameId = game.id;
+      }
+      this.scores = { ...pg.scores };
+    }
+  }
 
   filteredGames = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -146,4 +189,3 @@ export class AddGameDialogComponent {
     });
   }
 }
-
