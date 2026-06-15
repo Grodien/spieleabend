@@ -102,13 +102,14 @@ import { GameDialogComponent } from './game-dialog';
                         Noch nie gespielt
                       </span>
                     }
-                    <button mat-icon-button
-                            (click)="deleteGame(game); $event.stopPropagation()"
-                            class="delete-btn"
-                            [disabled]="getPlayCount(game.id) > 0"
-                            [matTooltip]="getPlayCount(game.id) > 0 ? 'Gespielte Spiele können nicht gelöscht werden' : 'Spiel löschen'">
-                      <mat-icon>delete_outline</mat-icon>
-                    </button>
+                    @if (getPlayCount(game.id) === 0) {
+                      <button mat-icon-button
+                              (click)="deleteGame(game); $event.stopPropagation()"
+                              class="delete-btn"
+                              matTooltip="Spiel löschen">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    }
                   </div>
                 </div>
               } @else {

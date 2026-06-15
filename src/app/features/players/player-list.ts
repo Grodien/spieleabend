@@ -38,13 +38,14 @@ import { PlayerDialogComponent } from './player-dialog';
                 <div class="player-avatar">{{ player.name.charAt(0).toUpperCase() }}</div>
                 <div class="player-name">{{ player.name }}</div>
               </div>
-              <button mat-icon-button
-                      (click)="deletePlayer(player)"
-                      class="delete-btn"
-                      [disabled]="hasPlayedAnyGame(player.id)"
-                      [matTooltip]="hasPlayedAnyGame(player.id) ? 'Spieler hat bereits an Spielen teilgenommen und kann nicht gelöscht werden' : 'Spieler löschen'">
-                <mat-icon>delete_outline</mat-icon>
-              </button>
+              @if (!hasPlayedAnyGame(player.id)) {
+                <button mat-icon-button
+                        (click)="deletePlayer(player)"
+                        class="delete-btn"
+                        matTooltip="Spieler löschen">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              }
             </div>
           }
         </div>
