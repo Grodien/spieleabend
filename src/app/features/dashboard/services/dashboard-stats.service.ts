@@ -169,47 +169,73 @@ export class DashboardStatsService {
     return nights.reduce((sum, n) => sum + n.playerIds.length, 0) / nights.length;
   });
 
-  bestWinRate = computed(() => {
-    const stats = this.playerStats();
-    // Filter to players who played at least 5 games to avoid sample size bias
-    const eligible = stats.filter((s) => s.gamesPlayed >= 5);
-    if (eligible.length === 0) {
-      const active = stats.filter((s) => s.gamesPlayed > 0);
-      if (active.length === 0) return '-';
-      const max = active.reduce((a, b) => {
-        const rateA = a.wins / a.gamesPlayed;
-        const rateB = b.wins / b.gamesPlayed;
-        return rateA > rateB ? a : b;
+  highestPaidNight = computed(() => {
+    let maxCost = 0;
+    let maxPlayerName = '-';
+    let maxDate = '';
+    const playersList = this.players();
+
+    this.pastFilteredGameNights().forEach((night) => {
+      const playerTotals = new Map<string, number>();
+      night.playerIds.forEach((pid) => playerTotals.set(pid, 0));
+
+      (night.playedGames ?? []).forEach((game) => {
+        Object.entries(game.costs).forEach(([pid, cost]) => {
+          if (playerTotals.has(pid)) {
+            playerTotals.set(pid, playerTotals.get(pid)! + cost);
+          }
+        });
       });
-      const percent = Math.round((max.wins / max.gamesPlayed) * 100);
-      return `${max.name} (${percent}%)`;
-    }
-    
-    const max = eligible.reduce((a, b) => {
-      const rateA = a.wins / a.gamesPlayed;
-      const rateB = b.wins / b.gamesPlayed;
-      return rateA > rateB ? a : b;
+
+      playerTotals.forEach((cost, pid) => {
+        if (cost > maxCost) {
+          maxCost = cost;
+          maxPlayerName = playersList.find((p) => p.id === pid)?.name || '?';
+          maxDate = night.date || '';
+        }
+      });
     });
-    const percent = Math.round((max.wins / max.gamesPlayed) * 100);
-    return `${max.name} (${percent}%)`;
+
+    if (maxCost === 0) return '-';
+
+    let formattedDate = maxDate;
+    if (maxDate) {
+      const parts = maxDate.split('-');
+      if (parts.length === 3) {
+        formattedDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+      }
+    }
+
+    return `${maxPlayerName} (${maxCost.toFixed(2)} CHF am ${formattedDate})`;
   });
 
-  pechvogel = computed(() => {
+  soClose = computed(() => {
     const counts = new Map<string, number>();
     this.players().forEach((p) => counts.set(p.id, 0));
 
     this.pastFilteredGameNights().forEach((night) => {
       (night.playedGames ?? []).forEach((game) => {
-        const costs = Object.entries(game.costs);
-        if (costs.length === 0) return;
-        const maxCost = Math.max(...costs.map(([, c]) => c));
-        if (maxCost <= 0) return; // Ignore games where everyone paid 0
+        const scores = Object.entries(game.scores);
+        if (scores.length <= 1) return;
 
-        costs.forEach(([pid, cost]) => {
-          if (cost === maxCost) {
-            counts.set(pid, (counts.get(pid) || 0) + 1);
+        const sorted = [...scores].sort((a, b) =>
+          game.scoringSystem === 'highest' ? b[1] - a[1] : a[1] - b[1]
+        );
+
+        const ranks: { pid: string; rank: number }[] = [];
+        let currentRank = 1;
+        for (let i = 0; i < sorted.length; i++) {
+          if (i > 0 && sorted[i][1] !== sorted[i - 1][1]) {
+            currentRank = i + 1;
           }
-        });
+          ranks.push({ pid: sorted[i][0], rank: currentRank });
+        }
+
+        ranks
+          .filter((r) => r.rank === 2)
+          .forEach((r) => {
+            counts.set(r.pid, (counts.get(r.pid) || 0) + 1);
+          });
       });
     });
 
@@ -224,6 +250,89 @@ export class DashboardStatsService {
     
     const max = entries.reduce((a, b) => (a.count > b.count ? a : b));
     return `${max.name} (${max.count}×)`;
+  });
+
+  schnellerLernerRanking = computed(() => {
+    const counts = new Map<string, number>();
+    this.players().forEach((p) => counts.set(p.id, 0));
+
+    const chronologicalNights = [...this.pastFilteredGameNights()].sort((a, b) =>
+      (a.date || '').localeCompare(b.date || '')
+    );
+
+    const seenGames = new Set<string>();
+
+    chronologicalNights.forEach((night) => {
+      (night.playedGames ?? []).forEach((game) => {
+        if (!seenGames.has(game.gameId)) {
+          seenGames.add(game.gameId);
+          
+          const scores = Object.entries(game.scores);
+          if (scores.length === 0) return;
+
+          const sorted = [...scores].sort((a, b) =>
+            game.scoringSystem === 'highest' ? b[1] - a[1] : a[1] - b[1]
+          );
+          const bestScore = sorted[0][1];
+
+          scores
+            .filter(([, score]) => score === bestScore)
+            .forEach(([pid]) => {
+              counts.set(pid, (counts.get(pid) || 0) + 1);
+            });
+        }
+      });
+    });
+
+    return Array.from(counts.entries())
+      .map(([pid, count]) => ({
+        playerId: pid,
+        name: this.players().find((p) => p.id === pid)?.name || '?',
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+  });
+
+  haeufigsterVerliererRanking = computed(() => {
+    const counts = new Map<string, number>();
+    this.players().forEach((p) => counts.set(p.id, 0));
+
+    this.pastFilteredGameNights().forEach((night) => {
+      (night.playedGames ?? []).forEach((game) => {
+        const costs = Object.entries(game.costs);
+        if (costs.length === 0) return;
+        const maxCost = Math.max(...costs.map(([, c]) => c));
+        if (maxCost <= 0) return;
+
+        costs.forEach(([pid, cost]) => {
+          if (cost === maxCost) {
+            counts.set(pid, (counts.get(pid) || 0) + 1);
+          }
+        });
+      });
+    });
+
+    return Array.from(counts.entries())
+      .map(([pid, count]) => ({
+        playerId: pid,
+        name: this.players().find((p) => p.id === pid)?.name || '?',
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+  });
+
+  anwesenheitRanking = computed(() => {
+    const totalNights = this.pastFilteredGameNights().length;
+    return this.playerStats().map((s) => {
+      const rate = totalNights > 0 ? (s.nightsPlayed / totalNights) * 100 : 0;
+      return {
+        playerId: s.playerId,
+        name: s.name,
+        nightsPlayed: s.nightsPlayed,
+        totalNights,
+        rate: Math.round(rate * 10) / 10,
+      };
+    }).sort((a, b) => b.rate - a.rate);
   });
 
   // ── Last / Next game night ────────────────────────────────────────────────

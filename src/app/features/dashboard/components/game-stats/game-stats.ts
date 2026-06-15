@@ -7,8 +7,31 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
   standalone: true,
   imports: [DecimalPipe],
   template: `
-    <!-- Meistgespielte Spiele -->
+    <!-- Extra Statistiken -->
     <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.4s backwards">
+      <h3 class="section-title">📈 Statistiken</h3>
+      <div class="extra-stats-grid">
+        <div class="extra-stat">
+          <div class="extra-stat-value">{{ stats.avgGamesPerNight() | number:'1.1-1' }}</div>
+          <div class="extra-stat-label">Ø Spiele pro Abend</div>
+        </div>
+        <div class="extra-stat">
+          <div class="extra-stat-value">{{ stats.avgPlayersPerNight() | number:'1.1-1' }}</div>
+          <div class="extra-stat-label">Ø Spieler pro Abend</div>
+        </div>
+        <div class="extra-stat">
+          <div class="extra-stat-value">{{ stats.highestPaidNight() }}</div>
+          <div class="extra-stat-label">Höchster bezahlter Betrag (Spieltag)</div>
+        </div>
+        <div class="extra-stat">
+          <div class="extra-stat-value">{{ stats.soClose() }}</div>
+          <div class="extra-stat-label">So close (am häufigsten Zweiter)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Meistgespielte Spiele -->
+    <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.5s backwards">
       <h3 class="section-title">🎮 Meistgespielte Spiele</h3>
       @if (stats.gameCounts().length === 0) {
         <div class="empty-hint">Noch keine Spiele gespielt.</div>
@@ -26,29 +49,6 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
           }
         </div>
       }
-    </div>
-
-    <!-- Extra Statistiken -->
-    <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.5s backwards">
-      <h3 class="section-title">📈 Statistiken</h3>
-      <div class="extra-stats-grid">
-        <div class="extra-stat">
-          <div class="extra-stat-value">{{ stats.avgGamesPerNight() | number:'1.1-1' }}</div>
-          <div class="extra-stat-label">Ø Spiele pro Abend</div>
-        </div>
-        <div class="extra-stat">
-          <div class="extra-stat-value">{{ stats.avgPlayersPerNight() | number:'1.1-1' }}</div>
-          <div class="extra-stat-label">Ø Spieler pro Abend</div>
-        </div>
-        <div class="extra-stat">
-          <div class="extra-stat-value">{{ stats.bestWinRate() }}</div>
-          <div class="extra-stat-label">Beste Winrate (≥5 Spiele)</div>
-        </div>
-        <div class="extra-stat">
-          <div class="extra-stat-value">{{ stats.pechvogel() }}</div>
-          <div class="extra-stat-label">Pechvogel (am häufigsten Letzter)</div>
-        </div>
-      </div>
     </div>
   `,
   styles: `

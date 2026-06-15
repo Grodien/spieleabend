@@ -39,8 +39,9 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
       </div>
     </div>
 
-    <!-- Ø Kosten & Häufigste Gewinner -->
-    <div class="two-col-grid">
+    <!-- Stats Rankings Grid -->
+    <div class="stats-cards-grid">
+      <!-- Ø Kosten -->
       <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.2s backwards">
         <h3 class="section-title">📊 Ø Kosten pro Abend</h3>
         <div class="ranking-list">
@@ -57,6 +58,7 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
         </div>
       </div>
 
+      <!-- Häufigste Gewinner -->
       <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.3s backwards">
         <h3 class="section-title">🏆 Häufigste Gewinner</h3>
         <div class="ranking-list">
@@ -72,11 +74,63 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
           }
         </div>
       </div>
+
+      <!-- Anwesenheit -->
+      <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.4s backwards">
+        <h3 class="section-title">📅 Anwesenheit</h3>
+        <div class="ranking-list">
+          @for (stat of stats.anwesenheitRanking(); track stat.playerId; let i = $index) {
+            <div class="ranking-item">
+              <span class="ranking-pos">{{ i + 1 }}.</span>
+              <div class="bar-avatar small">{{ stat.name.charAt(0).toUpperCase() }}</div>
+              <span class="ranking-name">{{ stat.name }}</span>
+              <div class="ranking-details">
+                <span class="ranking-value">{{ stat.rate }}%</span>
+                <span class="ranking-subvalue">({{ stat.nightsPlayed }}/{{ stat.totalNights }})</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Häufigster Verlierer -->
+      <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.5s backwards">
+        <h3 class="section-title">📉 Häufigster Verlierer (Letzter)</h3>
+        <div class="ranking-list">
+          @for (stat of stats.haeufigsterVerliererRanking(); track stat.playerId; let i = $index) {
+            <div class="ranking-item">
+              <span class="ranking-pos">
+                @if (i === 0) { ☠️ } @else { {{ i + 1 }}. }
+              </span>
+              <div class="bar-avatar small">{{ stat.name.charAt(0).toUpperCase() }}</div>
+              <span class="ranking-name">{{ stat.name }}</span>
+              <span class="ranking-value loses">{{ stat.count }}×</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Schneller Lerner -->
+      <div class="section glass-card" style="animation: slideInUp 0.5s ease-out 0.6s backwards">
+        <h3 class="section-title">🧠 Schneller Lerner (Erstpartien)</h3>
+        <div class="ranking-list">
+          @for (stat of stats.schnellerLernerRanking(); track stat.playerId; let i = $index) {
+            <div class="ranking-item">
+              <span class="ranking-pos">
+                @if (i === 0) { ⚡ } @else { {{ i + 1 }}. }
+              </span>
+              <div class="bar-avatar small">{{ stat.name.charAt(0).toUpperCase() }}</div>
+              <span class="ranking-name">{{ stat.name }}</span>
+              <span class="ranking-value learner">{{ stat.count }}×</span>
+            </div>
+          }
+        </div>
+      </div>
     </div>
   `,
   styles: `
     .section {
-      margin-bottom: 24px;
+      margin-bottom: 0px;
     }
 
     .section-title {
@@ -85,10 +139,11 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
       margin-bottom: 20px;
     }
 
-    .two-col-grid {
+    .stats-cards-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 24px;
+      margin-bottom: 24px;
     }
 
     /* Bar Chart */
@@ -213,15 +268,26 @@ import { DashboardStatsService } from '../../services/dashboard-stats.service';
       font-size: 14px;
     }
 
+    .ranking-details {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      line-height: 1.2;
+    }
+
+    .ranking-subvalue {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
     .ranking-value {
       font-weight: 600;
       font-size: 14px;
 
       &.wins { color: var(--color-accent-light); }
-    }
-
-    @media (max-width: 1024px) {
-      .two-col-grid { grid-template-columns: 1fr; }
+      &.loses { color: var(--color-danger); }
+      &.learner { color: var(--color-info); }
     }
 
     @media (max-width: 768px) {
