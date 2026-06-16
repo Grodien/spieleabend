@@ -12,6 +12,7 @@ import { GameNightService } from '../../core/services/game-night.service';
 import { PlayerService } from '../../core/services/player.service';
 import { GameService } from '../../core/services/game.service';
 import { CostCalculatorService } from '../../core/services/cost-calculator.service';
+import { AuthService } from '../../core/services/auth.service';
 import { GameNight, PlayedGame } from '../../core/models/game-night.model';
 import { Player } from '../../core/models/player.model';
 import { Game } from '../../core/models/game.model';
@@ -48,18 +49,20 @@ import { EditPlayersDialogComponent } from './edit-players-dialog';
               </div>
             </div>
           </div>
-          <div class="header-actions">
-            @if (playedGames().length === 0) {
-              <button mat-flat-button class="edit-players-btn" (click)="openEditPlayersDialog()">
-                <mat-icon>people</mat-icon>
-                Teilnehmer bearbeiten
+          @if (authService.isAdmin()) {
+            <div class="header-actions">
+              @if (playedGames().length === 0) {
+                <button mat-flat-button class="edit-players-btn" (click)="openEditPlayersDialog()">
+                  <mat-icon>people</mat-icon>
+                  Teilnehmer bearbeiten
+                </button>
+              }
+              <button mat-fab extended (click)="openAddGameDialog()">
+                <mat-icon>add</mat-icon>
+                Spiel hinzufügen
               </button>
-            }
-            <button mat-fab extended (click)="openAddGameDialog()">
-              <mat-icon>add</mat-icon>
-              Spiel hinzufügen
-            </button>
-          </div>
+            </div>
+          }
         </div>
 
         <!-- Player Cost Summary -->
@@ -107,16 +110,18 @@ import { EditPlayersDialogComponent } from './edit-players-dialog';
                       }
                     </div>
                   </div>
-                  <div class="header-actions-group">
-                    <button mat-icon-button (click)="openEditGameDialog(pg)" class="edit-btn"
-                            matTooltip="Scores bearbeiten">
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                    <button mat-icon-button (click)="deletePlayedGame(pg)" class="delete-btn"
-                            matTooltip="Spiel entfernen">
-                      <mat-icon>delete_outline</mat-icon>
-                    </button>
-                  </div>
+                  @if (authService.isAdmin()) {
+                    <div class="header-actions-group">
+                      <button mat-icon-button (click)="openEditGameDialog(pg)" class="edit-btn"
+                              matTooltip="Scores bearbeiten">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button (click)="deletePlayedGame(pg)" class="delete-btn"
+                              matTooltip="Spiel entfernen">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    </div>
+                  }
                 </div>
 
                 <div class="score-table">
@@ -441,6 +446,7 @@ export class GameNightDetailComponent implements OnInit {
   private playerService = inject(PlayerService);
   private gameService = inject(GameService);
   private costCalculator = inject(CostCalculatorService);
+  authService = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
@@ -535,6 +541,7 @@ export class GameNightDetailComponent implements OnInit {
   }
 
   openAddGameDialog() {
+    if (!this.authService.isAdmin()) return;
     const gn = this.gameNight();
     if (!gn) return;
 
@@ -577,6 +584,7 @@ export class GameNightDetailComponent implements OnInit {
   }
 
   openEditGameDialog(pg: PlayedGame) {
+    if (!this.authService.isAdmin()) return;
     const gn = this.gameNight();
     if (!gn) return;
 
@@ -616,6 +624,7 @@ export class GameNightDetailComponent implements OnInit {
   }
 
   deletePlayedGame(pg: PlayedGame) {
+    if (!this.authService.isAdmin()) return;
     const gn = this.gameNight();
     if (!gn) return;
 
@@ -625,6 +634,7 @@ export class GameNightDetailComponent implements OnInit {
   }
 
   openEditPlayersDialog() {
+    if (!this.authService.isAdmin()) return;
     const gn = this.gameNight();
     if (!gn) return;
 

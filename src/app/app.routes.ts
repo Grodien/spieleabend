@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -15,6 +16,7 @@ export const routes: Routes = [
     path: 'scoreboard',
     loadComponent: () =>
       import('./features/scoreboard/scoreboard').then((m) => m.ScoreboardComponent),
+    canActivate: [adminGuard],
   },
   {
     path: 'games',
@@ -29,6 +31,13 @@ export const routes: Routes = [
     path: 'game-nights/new',
     loadComponent: () =>
       import('./features/game-nights/game-night-create').then((m) => m.GameNightCreateComponent),
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'admin/users',
+    loadComponent: () =>
+      import('./features/admin/user-management').then((m) => m.UserManagementComponent),
+    canActivate: [adminGuard],
   },
   {
     path: 'game-nights/:id',

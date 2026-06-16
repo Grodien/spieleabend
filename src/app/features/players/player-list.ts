@@ -7,6 +7,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PlayerService } from '../../core/services/player.service';
 import { GameNightCacheService } from '../../core/services/game-night-cache.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Player } from '../../core/models/player.model';
 import { PlayerDialogComponent } from './player-dialog';
 
@@ -18,10 +19,12 @@ import { PlayerDialogComponent } from './player-dialog';
     <div class="page-container">
       <div class="page-header">
         <h1>Spieler</h1>
-        <button mat-fab extended (click)="openDialog()">
-          <mat-icon>person_add</mat-icon>
-          Spieler hinzufügen
-        </button>
+        @if (authService.isAdmin()) {
+          <button mat-fab extended (click)="openDialog()">
+            <mat-icon>person_add</mat-icon>
+            Spieler hinzufügen
+          </button>
+        }
       </div>
 
       @if (players().length === 0) {
@@ -38,7 +41,7 @@ import { PlayerDialogComponent } from './player-dialog';
                 <div class="player-avatar">{{ player.name.charAt(0).toUpperCase() }}</div>
                 <div class="player-name">{{ player.name }}</div>
               </div>
-              @if (!hasPlayedAnyGame(player.id)) {
+              @if (authService.isAdmin() && !hasPlayedAnyGame(player.id)) {
                 <button mat-icon-button
                         (click)="deletePlayer(player)"
                         class="delete-btn"
@@ -97,6 +100,7 @@ import { PlayerDialogComponent } from './player-dialog';
 export class PlayerListComponent implements OnInit {
   private playerService = inject(PlayerService);
   private cache = inject(GameNightCacheService);
+  authService = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
@@ -117,6 +121,7 @@ export class PlayerListComponent implements OnInit {
   }
 
   openDialog() {
+    if (!this.authService.isAdmin()) return;
     const dialogRef = this.dialog.open(PlayerDialogComponent, {
       width: '100%',
       maxWidth: '400px',
@@ -132,6 +137,10 @@ export class PlayerListComponent implements OnInit {
   }
 
   deletePlayer(player: Player) {
+    if (!this.authService.isAdmin()) {
+      this.snackBar.open('Keine Berechtigung.', 'OK', { duration: 3000 });
+      return;
+    }
     if (this.hasPlayedAnyGame(player.id)) {
       this.snackBar.open('Spieler mit bestehender Spielhistorie kann nicht gelöscht werden.', 'OK', { duration: 3000 });
       return;

@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { GameNightService } from '../../core/services/game-night.service';
 import { PlayerService } from '../../core/services/player.service';
+import { AuthService } from '../../core/services/auth.service';
 import { GameNight } from '../../core/models/game-night.model';
 import { Player } from '../../core/models/player.model';
 
@@ -17,10 +18,12 @@ import { Player } from '../../core/models/player.model';
     <div class="page-container">
       <div class="page-header">
         <h1>Spieleabende</h1>
-        <button mat-fab extended [routerLink]="['/game-nights/new']">
-          <mat-icon>add</mat-icon>
-          Neuer Spieleabend
-        </button>
+        @if (authService.isAdmin()) {
+          <button mat-fab extended [routerLink]="['/game-nights/new']">
+            <mat-icon>add</mat-icon>
+            Neuer Spieleabend
+          </button>
+        }
       </div>
 
       @if (gameNights().length === 0) {
@@ -181,6 +184,7 @@ import { Player } from '../../core/models/player.model';
 export class GameNightListComponent implements OnInit {
   private gameNightService = inject(GameNightService);
   private playerService = inject(PlayerService);
+  authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
   gameNights = signal<GameNight[]>([]);

@@ -9,6 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { GameService } from '../../core/services/game.service';
 import { GameNightCacheService } from '../../core/services/game-night-cache.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Game } from '../../core/models/game.model';
 import { GameNight } from '../../core/models/game-night.model';
 import { Subscription } from 'rxjs';
@@ -41,10 +42,12 @@ import { GameDialogComponent } from './game-dialog';
             </mat-select>
           </mat-form-field>
           
-          <button mat-fab extended (click)="openDialog()">
-            <mat-icon>add</mat-icon>
-            Spiel hinzufügen
-          </button>
+          @if (authService.isAdmin()) {
+            <button mat-fab extended (click)="openDialog()">
+              <mat-icon>add</mat-icon>
+              Spiel hinzufügen
+            </button>
+          }
         </div>
       </div>
 
@@ -102,7 +105,7 @@ import { GameDialogComponent } from './game-dialog';
                         Noch nie gespielt
                       </span>
                     }
-                    @if (getPlayCount(game.id) === 0) {
+                    @if (authService.isAdmin() && getPlayCount(game.id) === 0) {
                       <button mat-icon-button
                               (click)="deleteGame(game); $event.stopPropagation()"
                               class="delete-btn"
@@ -509,6 +512,7 @@ import { GameDialogComponent } from './game-dialog';
 export class GameListComponent implements OnInit, OnDestroy {
   private gameService = inject(GameService);
   private cache = inject(GameNightCacheService);
+  authService = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
@@ -660,6 +664,7 @@ export class GameListComponent implements OnInit, OnDestroy {
   }
 
   openDialog() {
+    if (!this.authService.isAdmin()) return;
     const dialogRef = this.dialog.open(GameDialogComponent, {
       width: '100%',
       maxWidth: '450px',
@@ -675,6 +680,10 @@ export class GameListComponent implements OnInit, OnDestroy {
   }
 
   deleteGame(game: Game) {
+    if (!this.authService.isAdmin()) {
+      this.snackBar.open('Keine Berechtigung.', 'OK', { duration: 3000 });
+      return;
+    }
     if (this.getPlayCount(game.id) > 0) {
       this.snackBar.open('Gespielte Spiele können nicht gelöscht werden.', 'OK', { duration: 3000 });
       return;

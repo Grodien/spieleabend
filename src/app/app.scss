@@ -166,3 +166,107 @@
     }
   }
 }
+
+/* Authentication Section */
+.sidenav-auth {
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+  margin-top: auto; /* Push to bottom of flex container */
+}
+
+.login-btn {
+  width: 100%;
+  height: 40px;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-md) !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  
+  &.small {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  width: fit-content;
+  margin-top: 2px;
+  letter-spacing: 0.03em;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-secondary);
+}
+
+.admin-badge {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--color-accent-light);
+}
+
+.pending-badge {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+}
+
+/* Mobile Header Auth */
+.mobile-header {
+  justify-content: space-between;
+}
+
+.mobile-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-auth {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-logout-btn, .mobile-login-btn {
+  color: var(--color-text-secondary) !important;
+}
+

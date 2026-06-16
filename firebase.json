@@ -1,4 +1,16 @@
 {
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Spieleabend",
+        "supportEmail": "thomas.bomatter@gmail.com",
+        "authorizedRedirectUris": [
+          "https://spieleabend-tracker.web.app",
+          "http://localhost"
+        ]
+      }
+    }
+  },
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json",

@@ -7,7 +7,7 @@
       </div>
     </div>
     <mat-nav-list class="nav-list">
-      @for (item of navItems; track item.path) {
+      @for (item of navItems(); track item.path) {
         <a mat-list-item
            [routerLink]="item.path"
            routerLinkActive="active-link"
@@ -17,6 +17,34 @@
         </a>
       }
     </mat-nav-list>
+
+    <!-- Sidenav Authentication Section -->
+    <div class="sidenav-auth">
+      @if (authService.isLoggedIn()) {
+        <div class="user-profile">
+          <img [src]="authService.appUser()?.photoURL || 'https://lh3.googleusercontent.com/a/default-user=s96-c'" 
+               class="user-avatar" 
+               alt="User Avatar" />
+          <div class="user-details">
+            <span class="user-name" [matTooltip]="authService.appUser()?.displayName || ''">{{ authService.appUser()?.displayName }}</span>
+            <span class="user-role-badge" 
+                  [class.admin-badge]="authService.isAdmin()" 
+                  [class.pending-badge]="authService.isPending()">
+              {{ authService.isAdmin() ? 'Admin' : (authService.isPending() ? 'Ausstehend' : 'Spieler') }}
+            </span>
+          </div>
+          <button mat-icon-button (click)="authService.logout()" matTooltip="Abmelden">
+            <mat-icon>logout</mat-icon>
+          </button>
+        </div>
+      } @else {
+        <button mat-flat-button color="primary" class="login-btn" (click)="authService.loginWithGoogle()">
+          <mat-icon>login</mat-icon>
+          Login mit Google
+        </button>
+      }
+    </div>
+
     <div class="sidenav-footer">
       <span class="footer-text">Spieleabend Tracker</span>
     </div>
@@ -25,8 +53,28 @@
   <mat-sidenav-content class="app-content">
     @if (!isDesktop()) {
       <div class="mobile-header">
-        <span class="logo-icon">🎲</span>
-        <span class="mobile-title">Spieleabend</span>
+        <div class="mobile-logo">
+          <span class="logo-icon">🎲</span>
+          <span class="mobile-title">Spieleabend</span>
+        </div>
+        
+        <!-- Mobile Auth Controls -->
+        <div class="mobile-auth">
+          @if (authService.isLoggedIn()) {
+            <div class="mobile-user-info">
+              <img [src]="authService.appUser()?.photoURL || 'https://lh3.googleusercontent.com/a/default-user=s96-c'" 
+                   class="user-avatar small" 
+                   [matTooltip]="authService.appUser()?.displayName || ''" />
+              <button mat-icon-button (click)="authService.logout()" class="mobile-logout-btn" matTooltip="Abmelden">
+                <mat-icon>logout</mat-icon>
+              </button>
+            </div>
+          } @else {
+            <button mat-icon-button (click)="authService.loginWithGoogle()" class="mobile-login-btn" matTooltip="Anmelden">
+              <mat-icon>login</mat-icon>
+            </button>
+          }
+        </div>
       </div>
     }
 
@@ -36,7 +84,7 @@
 
     @if (!isDesktop()) {
       <nav class="mobile-nav-bar">
-        @for (item of navItems; track item.path) {
+        @for (item of navItems(); track item.path) {
           <a [routerLink]="item.path"
              routerLinkActive="mobile-active-link"
              class="mobile-nav-item">
